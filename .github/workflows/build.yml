@@ -1,0 +1,34 @@
+# Builds iActivator for Windows and macOS on GitHub's machines.
+# Run it from the repository's Actions tab ("Run workflow"); the results appear as artifacts.
+name: build
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        run: pyinstaller --noconfirm --onefile --windowed --name iActivator --collect-all pymobiledevice3 --collect-all webview --add-data "iactivator/page.html;iactivator" main.py
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          pyinstaller --noconfirm --windowed --name iActivator --collect-all pymobiledevice3 --collect-all webview --add-data "iactivator/page.html:iactivator" main.py
+          cd dist && zip -qry iActivator-mac.zip iActivator.app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iActivator-${{ runner.os }}
+          path: |
+            dist/iActivator.exe
+            dist/iActivator-mac.zip

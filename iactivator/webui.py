@@ -1,0 +1,216 @@
+"""Browser UI: a small local HTTP server (127.0.0.1 only) + one HTML page.
+
+Used instead of Tkinter because the system Tk shipped with macOS is deprecated and
+renders blank windows on recent versions; a browser works the same everywhere.
+"""
+from __future__ import annotations
+
+import asyncio
+import json
+import socket
+import threading
+import traceback
+import webbrowser
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+
+from . import core
+
+LANGUAGES = [
+    ("Українська", "uk"), ("Русский", "ru"), ("English (US)", "en"), ("English (UK)", "en-GB"),
+    ("Polski", "pl"), ("Deutsch", "de"), ("Français", "fr"), ("Español", "es"), ("Italiano", "it"),
+    ("Português (BR)", "pt-BR"), ("Türkçe", "tr"), ("Română", "ro"), ("Čeština", "cs"),
+    ("Slovenčina", "sk"), ("Magyar", "hu"), ("Қазақ", "kk"), ("עברית", "he"), ("العربية", "ar"),
+    ("中文 (简体)", "zh-Hans"), ("中文 (繁體)", "zh-Hant"), ("日本語", "ja"), ("한국어", "ko"),
+]
+
+REGIONS = [
+    ("Україна", "UA", "Europe/Kyiv"), ("Польща", "PL", "Europe/Warsaw"),
+    ("Німеччина", "DE", "Europe/Berlin"), ("Чехія", "CZ", "Europe/Prague"),
+    ("Молдова", "MD", "Europe/Chisinau"), ("Румунія", "RO", "Europe/Bucharest"),
+    ("Казахстан", "KZ", "Asia/Almaty"), ("Грузія", "GE", "Asia/Tbilisi"),
+    ("Туреччина", "TR", "Europe/Istanbul"), ("Велика Британія", "GB", "Europe/London"),
+    ("Франція", "FR", "Europe/Paris"), ("Італія", "IT", "Europe/Rome"),
+    ("Іспанія", "ES", "Europe/Madrid"), ("Ізраїль", "IL", "Asia/Jerusalem"),
+    ("ОАЕ", "AE", "Asia/Dubai"), ("США", "US", "America/New_York"),
+    ("Канада", "CA", "America/Toronto"), ("Китай", "CN", "Asia/Shanghai"),
+]
+
+PAGE = (Path(__file__).parent / "page.html").read_text(encoding="utf-8")
+
+
+class State:
+    def __init__(self):
+        self.loop = asyncio.new_event_loop()
+        threading.Thread(target=self.loop.run_forever, daemon=True).start()
+        self.lock = threading.Lock()
+        self.lines: list[str] = []
+        self.busy = False
+
+    def log(self, msg: str) -> None:
+        with self.lock:
+            self.lines.append(msg)
+
+    def run(self, coro):
+        """Run a coroutine on the device loop and wait for its result."""
+        return asyncio.run_coroutine_threadsafe(coro, self.loop).result()
+
+    def run_job(self, make_coro) -> bool:
+        """Start a long job in the background; its progress goes to the log."""
+        with self.lock:
+            if self.busy:
+                return False
+            self.busy = True
+
+        async def job():
+            try:
+                await make_coro()
+            except core.UserFacingError as e:
+                self.log(f"❌ {e}")
+            except Exception as e:
+                self.log("❌ Ошибка: " + "".join(traceback.format_exception_only(type(e), e)).strip())
+            finally:
+                self.busy = False
+        asyncio.run_coroutine_threadsafe(job(), self.loop)
+        return True
+
+
+STATE = State()
+
+
+async def _with_activator(serial, fn):
+    act = core.Activator(serial, STATE.log)
+    try:
+        await fn(act)
+    finally:
+        await act.close()
+
+
+def _wifi(d: dict):
+    if not d.get("ssid"):
+        return None
+    return core.WifiOptions(
+        ssid=d["ssid"],
+        password=d.get("password", ""),
+        security=d.get("security", "Any"),
+        hidden=bool(d.get("hidden")),
+        disable_mac_randomization=bool(d.get("nomac", True)),
+    )
+
+
+def _options(d: dict) -> core.SetupOptions:
+    return core.SetupOptions(
+        language=d.get("language", "uk").strip(),
+        region=d.get("region", "UA").strip().upper(),
+        timezone=d.get("timezone", "Europe/Kyiv").strip(),
+        use_24h=bool(d.get("h24", True)),
+        activate=bool(d.get("activate", True)),
+        skip_setup=bool(d.get("skip_setup", True)),
+        organization=(d.get("organization") or "iActivator").strip(),
+        wifi=_wifi(d),
+    )
+
+
+class Handler(BaseHTTPRequestHandler):
+    def log_message(self, *args):
+        pass
+
+    def _send(self, code: int, body, ctype="application/json; charset=utf-8"):
+        data = body.encode("utf-8") if isinstance(body, str) else json.dumps(body, ensure_ascii=False).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(data)
+
+    def do_GET(self):
+        if self.path == "/":
+            return self._send(200, PAGE, "text/html; charset=utf-8")
+        if self.path == "/api/meta":
+            return self._send(200, {
+                "languages": LANGUAGES, "regions": REGIONS,
+                "security": [[k, v] for k, v in core.WIFI_SECURITY.items()],
+            })
+        if self.path.startswith("/api/log"):
+            since = int(self.path.partition("since=")[2] or 0)
+            with STATE.lock:
+                lines = STATE.lines[since:]
+                total = len(STATE.lines)
+            return self._send(200, {"lines": lines, "next": total, "busy": STATE.busy})
+        if self.path == "/api/devices":
+            try:
+                devs = STATE.run(core.list_devices())
+                return self._send(200, [{"serial": d.serial, "label": d.label()} for d in devs])
+            except Exception as e:
+                return self._send(200, {"error": f"Не удалось получить список устройств: {e}"})
+        self._send(404, {"error": "not found"})
+
+    def do_POST(self):
+        # Only accept requests from our own page (blocks other websites from poking the API).
+        if self.headers.get("Origin") not in (None, f"http://127.0.0.1:{self.server.server_port}"):
+            return self._send(403, {"error": "forbidden"})
+        length = int(self.headers.get("Content-Length", 0))
+        d = json.loads(self.rfile.read(length) or b"{}")
+        serial = d.get("serial")
+        if not serial:
+            return self._send(400, {"error": "Не выбрано устройство"})
+
+        if self.path == "/api/languages":
+            try:
+                langs, _ = STATE.run(core.get_supported_languages(serial))
+                return self._send(200, langs)
+            except Exception as e:
+                return self._send(200, {"error": str(e)})
+
+        if self.path == "/api/run":
+            opts = _options(d)
+            job = lambda: _with_activator(serial, lambda a: a.run(opts))
+        elif self.path == "/api/wifi":
+            wifi = _wifi(d)
+            if wifi is None:
+                return self._send(400, {"error": "Введите имя сети"})
+            job = lambda: _with_activator(serial, lambda a: a.install_wifi_only(wifi))
+        elif self.path == "/api/erase":
+            job = lambda: _with_activator(serial, lambda a: a.erase())
+        else:
+            return self._send(404, {"error": "not found"})
+        if not STATE.run_job(job):
+            return self._send(409, {"error": "Уже выполняется другая операция"})
+        self._send(200, {"ok": True})
+
+
+def _free_port(preferred: int = 8765) -> int:
+    with socket.socket() as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # same as the server, so a restart keeps the port
+        try:
+            s.bind(("127.0.0.1", preferred))
+            return preferred
+        except OSError:
+            s.bind(("127.0.0.1", 0))
+            return s.getsockname()[1]
+
+
+def main():
+    port = _free_port()
+    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    url = f"http://127.0.0.1:{port}/"
+    try:
+        import webview  # native window: WebKit on macOS, Edge WebView2 on Windows
+    except ImportError:
+        webview = None
+
+    if webview is not None:
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        webview.create_window("iActivator — активация iPhone", url, width=820, height=920, min_size=(560, 600))
+        webview.start()
+        return
+
+    # Fallback without pywebview: open the page in the default browser.
+    print(f"iActivator открыт в браузере: {url}")
+    print("Не закрывайте это окно, пока работаете с программой. Выход: Ctrl+C.")
+    threading.Timer(0.5, lambda: webbrowser.open(url)).start()
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
