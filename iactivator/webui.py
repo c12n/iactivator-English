@@ -7,13 +7,16 @@ from __future__ import annotations
 
 import asyncio
 import json
+import platform
 import socket
+import subprocess
+import sys
 import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import core, settings
+from . import __version__, core, settings
 
 LANGUAGES = [
     ("Украинский", "uk"), ("Русский", "ru"), ("Английский (США)", "en"), ("Английский (Великобритания)", "en-GB"),
@@ -36,6 +39,29 @@ REGIONS = [
 ]
 
 PAGE = (Path(__file__).parent / "page.html").read_text(encoding="utf-8")
+
+
+def _about() -> dict:
+    try:
+        from importlib.metadata import version
+        pmd3 = version("pymobiledevice3")
+    except Exception:
+        pmd3 = "—"
+    return {
+        "version": __version__,
+        "system": f"{platform.system()} {platform.release()}",
+        "python": platform.python_version(),
+        "pymobiledevice3": pmd3,
+        "data_dir": str(core.app_data_dir()),
+    }
+
+
+def _open_folder(path: str) -> None:
+    if sys.platform == "win32":
+        import os
+        os.startfile(path)
+    else:
+        subprocess.Popen(["open" if sys.platform == "darwin" else "xdg-open", path])
 
 
 class State:
@@ -132,6 +158,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {
                 "languages": LANGUAGES, "regions": REGIONS,
                 "security": [[k, v] for k, v in core.WIFI_SECURITY.items()],
+                "about": _about(),
             })
         if self.path.startswith("/api/log"):
             since = int(self.path.partition("since=")[2] or 0)
@@ -171,6 +198,10 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/network/delete":
             settings.delete_network(d.get("ssid", ""))
             return self._send(200, settings.load())
+
+        if self.path == "/api/open-data":
+            _open_folder(str(core.app_data_dir()))
+            return self._send(200, {"ok": True})
 
         if self.path == "/api/settings/last":
             settings.save_last(d)
@@ -254,7 +285,7 @@ def main():
 
     if webview is not None:
         threading.Thread(target=server.serve_forever, daemon=True).start()
-        webview.create_window("iActivator — активация iPhone", url, width=1180, height=860, min_size=(600, 600))
+        webview.create_window(f"iActivator {__version__}", url, width=1120, height=780, min_size=(640, 560))
         webview.start()
         return
 

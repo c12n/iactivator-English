@@ -5,121 +5,268 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>iActivator</title>
 <style>
-  :root { --bg:#f5f5f7; --card:#fff; --text:#1d1d1f; --muted:#6e6e73; --line:#e3e3e8; --field:#f5f5f7;
-          --accent:#0071e3; --danger:#d70015; --good:#1a7f37; --warn:#b25e00; }
+  :root { --bg:#f5f5f7; --side:#ececf0; --card:#fff; --text:#1d1d1f; --muted:#86868b; --line:#e5e5ea; --field:#f2f2f5;
+          --accent:#0071e3; --accent-soft:#0071e314; --danger:#e0262f; --good:#1f9d55; --warn:#c77700;
+          --shadow:0 1px 2px #0000000a, 0 4px 16px #0000000a; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#1c1c1e; --card:#2c2c2e; --text:#f5f5f7; --muted:#a1a1a6; --line:#3a3a3c; --field:#1c1c1e;
-            --accent:#0a84ff; --danger:#ff453a; --good:#30d158; --warn:#ff9f0a; }
+    :root { --bg:#161618; --side:#1e1e21; --card:#232326; --text:#f5f5f7; --muted:#98989d; --line:#323236; --field:#2c2c30;
+            --accent:#0a84ff; --accent-soft:#0a84ff22; --danger:#ff453a; --good:#30d158; --warn:#ff9f0a; --shadow:none; }
   }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--text); font:13px -apple-system, "Segoe UI", system-ui, sans-serif; }
-  main { max-width:1180px; margin:0 auto; padding:12px 16px 96px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; }
-  h2 { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:0 0 8px; }
-  .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
-  @media (max-width: 820px) { .grid { grid-template-columns:1fr; } }
-  .row { display:flex; gap:8px; align-items:center; margin:5px 0; }
-  .row > .lbl { width:96px; flex:none; color:var(--muted); }
-  input[type=text], input[type=password], select { flex:1; min-width:0; height:28px; padding:0 8px; border:1px solid var(--line);
-    border-radius:7px; background:var(--field); color:var(--text); font:inherit; }
-  .check { display:flex; gap:6px; align-items:center; white-space:nowrap; }
-  .hint { color:var(--muted); font-size:11px; }
-  button { height:28px; padding:0 12px; border-radius:7px; border:1px solid var(--line); background:var(--card); color:var(--text);
-    font:inherit; cursor:pointer; white-space:nowrap; }
-  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; height:34px; padding:0 18px; font-size:14px; }
-  button.danger { color:var(--danger); }
-  button:disabled { opacity:.5; cursor:default; }
+  html, body { height:100%; }
+  body { margin:0; background:var(--bg); color:var(--text); font:13px/1.4 -apple-system, "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+         display:flex; -webkit-font-smoothing:antialiased; }
+  svg { width:16px; height:16px; flex:none; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 
-  .top { display:flex; gap:8px; align-items:center; }
-  .top h1 { font-size:16px; margin:0 8px 0 0; white-space:nowrap; }
-  .top select { height:30px; }
-  .info { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:6px 14px; }
-  .info span { display:block; color:var(--muted); font-size:11px; }
+  /* ---------- sidebar ---------- */
+  aside { width:200px; flex:none; background:var(--side); border-right:1px solid var(--line); display:flex; flex-direction:column; padding:18px 10px 12px; }
+  .brand { display:flex; gap:10px; align-items:center; padding:0 8px 18px; }
+  .logo { width:30px; height:30px; border-radius:8px; background:linear-gradient(135deg,#3a8dff,#7b5cff); display:grid; place-items:center; color:#fff; }
+  .logo svg { width:17px; height:17px; }
+  .brand b { display:block; font-size:14px; } .brand small { color:var(--muted); font-size:11px; }
+  nav a { display:flex; gap:10px; align-items:center; padding:7px 10px; border-radius:8px; color:var(--text); text-decoration:none; cursor:pointer; margin-bottom:2px; }
+  nav a:hover { background:var(--accent-soft); }
+  nav a.on { background:var(--card); box-shadow:var(--shadow); font-weight:600; }
+  nav a.on svg { color:var(--accent); }
+  nav .count { margin-left:auto; font-size:11px; color:var(--muted); }
+  .conn { margin-top:auto; padding:10px; border-radius:10px; background:var(--card); display:flex; gap:8px; align-items:center; font-size:12px; }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--muted); flex:none; }
+  .dot.on { background:var(--good); box-shadow:0 0 0 3px #30d15833; }
+  .conn span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* ---------- content ---------- */
+  .wrap { flex:1; min-width:0; display:flex; flex-direction:column; }
+  main { flex:1; overflow:auto; padding:20px 24px 24px; }
+  .page { display:none; max-width:980px; margin:0 auto; } .page.on { display:block; }
+  h1 { font-size:20px; margin:0 0 14px; letter-spacing:-.01em; }
+  .card { background:var(--card); border-radius:14px; padding:14px 16px; box-shadow:var(--shadow); border:1px solid var(--line); }
+  .card + .card, .grid + .card, .card + .grid { margin-top:14px; }
+  h2 { font-size:12px; font-weight:600; color:var(--muted); margin:0 0 10px; display:flex; align-items:center; gap:8px; }
+  h2 .sp { flex:1; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .grid > .card { margin-top:0; }
+
+  .row { display:flex; gap:8px; align-items:center; min-height:30px; margin:4px 0; }
+  .row > .lbl { width:104px; flex:none; color:var(--muted); }
+  input[type=text], input[type=password], select { flex:1; min-width:0; height:30px; padding:0 10px; border:1px solid transparent;
+    border-radius:8px; background:var(--field); color:var(--text); font:inherit; outline:none; }
+  input:focus, select:focus { border-color:var(--accent); background:var(--card); }
+  .hint { color:var(--muted); font-size:11.5px; margin:2px 0 6px; }
+  .sep { height:1px; background:var(--line); margin:10px 0; }
+
+  /* switch */
+  .sw { display:flex; gap:10px; align-items:center; cursor:pointer; min-height:30px; }
+  .sw input { appearance:none; -webkit-appearance:none; width:32px; height:19px; border-radius:10px; background:var(--line); position:relative;
+    flex:none; margin:0; cursor:pointer; transition:background .15s; }
+  .sw input::after { content:""; position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%; background:#fff;
+    box-shadow:0 1px 2px #0003; transition:transform .15s; }
+  .sw input:checked { background:var(--accent); } .sw input:checked::after { transform:translateX(13px); }
+  .sw .t { flex:1; } .sw .t small { display:block; color:var(--muted); font-size:11.5px; }
+  .mini { display:flex; gap:6px; align-items:center; white-space:nowrap; color:var(--muted); cursor:pointer; }
+  .mini input { accent-color:var(--accent); margin:0; }
+
+  button { height:30px; padding:0 12px; border-radius:8px; border:0; background:var(--field); color:var(--text);
+    font:inherit; font-weight:500; cursor:pointer; white-space:nowrap; display:inline-flex; gap:6px; align-items:center; }
+  button:hover { filter:brightness(.96); }
+  button.icon { width:30px; padding:0; justify-content:center; }
+  button.primary { background:var(--accent); color:#fff; height:36px; padding:0 20px; font-size:14px; font-weight:600; border-radius:10px; }
+  button.ghost-danger { background:transparent; color:var(--danger); }
+  button:disabled { opacity:.45; cursor:default; filter:none; }
+
+  /* device */
+  .dev { display:flex; gap:14px; align-items:center; }
+  .phone { width:42px; height:42px; border-radius:11px; background:var(--accent-soft); color:var(--accent); display:grid; place-items:center; flex:none; }
+  .phone svg { width:22px; height:22px; }
+  .dev select { font-weight:600; font-size:14px; }
+  .info { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:10px 16px; margin-top:14px; }
+  .info:empty { display:none; }
+  .info span { display:block; color:var(--muted); font-size:11px; margin-bottom:1px; }
   .info b { font-weight:600; }
-  .badges { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-  .badge { display:flex; gap:6px; align-items:flex-start; padding:6px 10px; border-radius:8px; background:var(--field); max-width:100%; }
-  .badge small { display:block; color:var(--muted); }
+  .badges { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .badges:empty { display:none; }
+  .badge { display:flex; gap:8px; align-items:flex-start; padding:7px 11px; border-radius:10px; background:var(--field); max-width:100%; }
+  .badge small, .item small { display:block; color:var(--muted); font-size:11.5px; }
   .good { color:var(--good); } .warn { color:var(--warn); } .bad { color:var(--danger); }
-  .empty { color:var(--muted); padding:6px 0; }
+  .empty { color:var(--muted); }
+  .st { width:8px; height:8px; border-radius:50%; margin-top:5px; flex:none; background:var(--muted); }
+  .st.ok { background:var(--good); } .st.warn { background:var(--warn); } .st.bad { background:var(--danger); }
 
-  .results { display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
-  @media (max-width: 820px) { .results { grid-template-columns:1fr; } }
-  .item { display:flex; gap:8px; padding:6px 0; border-top:1px solid var(--line); }
-  .item b { display:block; } .item small { color:var(--muted); }
-  .summary { font-weight:600; margin:4px 0 6px; }
+  .results { display:grid; grid-template-columns:1fr 1fr; gap:0 20px; }
+  .item { display:flex; gap:10px; padding:9px 0; border-top:1px solid var(--line); }
+  .item b { display:block; font-weight:600; }
+  .summary { font-weight:600; font-size:14px; margin:2px 0 10px; }
 
-  footer { position:fixed; left:0; right:0; bottom:0; background:var(--card); border-top:1px solid var(--line); }
-  footer .bar { max-width:1180px; margin:0 auto; padding:10px 16px; display:flex; gap:8px; align-items:center; }
-  footer .status { flex:1; min-width:0; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
-  #log { display:none; max-width:1180px; margin:0 auto; padding:0 16px 10px; max-height:220px; overflow:auto;
-    white-space:pre-wrap; font:11px ui-monospace, Menlo, Consolas, monospace; }
-  footer.open #log { display:block; }
+  #log { white-space:pre-wrap; font:11.5px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; max-height:calc(100vh - 170px); overflow:auto; margin:0; }
+
+  .about dl { display:grid; grid-template-columns:150px 1fr; gap:8px 12px; margin:0; }
+  .about dt { color:var(--muted); } .about dd { margin:0; word-break:break-all; }
+  .hero { display:flex; gap:16px; align-items:center; }
+  .hero .logo { width:56px; height:56px; border-radius:14px; } .hero .logo svg { width:30px; height:30px; }
+  .hero b { font-size:20px; display:block; } .hero span { color:var(--muted); }
+  ul.feat { margin:0; padding-left:18px; } ul.feat li { margin:4px 0; }
+
+  /* action bar */
+  .bar { border-top:1px solid var(--line); background:var(--card); padding:10px 24px; display:flex; gap:10px; align-items:center; }
+  .bar .status { flex:1; min-width:0; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
+  .spin { width:14px; height:14px; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:r .8s linear infinite; display:none; flex:none; }
+  .busy .spin { display:block; }
+  @keyframes r { to { transform:rotate(360deg); } }
+
+  @media (max-width: 860px) {
+    .grid, .results { grid-template-columns:1fr; }
+    aside { width:62px; padding:14px 8px; } .brand div, nav a span, nav .count, .conn span { display:none; }
+    .brand { padding:0 8px 16px; } nav a { justify-content:center; } .conn { justify-content:center; }
+    main { padding:16px; } .bar { padding:10px 16px; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <div class="card">
-    <div class="top">
-      <h1>iActivator</h1>
-      <select id="device"><option value="">Подключите iPhone кабелем…</option></select>
-      <button id="refresh" title="Обновить">↻</button>
-      <label class="check" title="При подключении нового iPhone сразу запускать активацию с текущими настройками">
-        <input type="checkbox" id="auto"> Авто при подключении</label>
-    </div>
-    <div id="info" class="info" style="margin-top:10px"></div>
-    <div id="badges" class="badges"></div>
+<svg style="display:none">
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2.5 5 13.5h6l-1 8 8-11h-6z"/></symbol>
+  <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.7 16a5 5 0 0 1 6.6 0"/><circle cx="12" cy="19.5" r=".8" fill="currentColor"/></symbol>
+  <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 12h4l2.5-6 5 12 2.5-6h4"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5h.01"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></symbol>
+</svg>
+
+<aside>
+  <div class="brand">
+    <div class="logo"><svg><use href="#i-bolt"/></svg></div>
+    <div><b>iActivator</b><small id="ver">версия —</small></div>
   </div>
+  <nav>
+    <a data-page="activate" class="on"><svg><use href="#i-bolt"/></svg><span>Активация</span></a>
+    <a data-page="wifi"><svg><use href="#i-wifi"/></svg><span>Wi-Fi</span><span class="count" id="netCount"></span></a>
+    <a data-page="check"><svg><use href="#i-pulse"/></svg><span>Диагностика</span></a>
+    <a data-page="log"><svg><use href="#i-list"/></svg><span>Журнал</span></a>
+    <a data-page="about"><svg><use href="#i-info"/></svg><span>О программе</span></a>
+  </nav>
+  <div class="conn" title="Состояние подключения"><i class="dot" id="connDot"></i><span id="connText">Нет устройства</span></div>
+</aside>
 
-  <div class="grid">
+<div class="wrap">
+<main>
+  <!-- ======== Активация ======== -->
+  <section class="page on" id="p-activate">
     <div class="card">
-      <h2>Настройка iPhone</h2>
-      <div class="row"><span class="lbl">Язык</span><select id="language"></select>
-        <button id="loadLangs" title="Загрузить все языки, которые поддерживает iPhone">Все</button></div>
-      <div class="row"><span class="lbl">Регион</span><select id="region"></select></div>
-      <div class="row"><span class="lbl">Часовой пояс</span><input type="text" id="timezone" value="Europe/Kyiv">
-        <label class="check"><input type="checkbox" id="h24" checked> 24 ч</label></div>
-      <div class="row"><label class="check"><input type="checkbox" id="activate" checked> Активировать через серверы Apple</label></div>
-      <div class="row"><label class="check"><input type="checkbox" id="skip" checked> <b>Пропустить все экраны настройки</b></label></div>
-      <div class="hint" style="margin-left:22px">Работает на сброшенном iPhone до прохождения настройки.</div>
-      <div class="row"><label class="check"><input type="checkbox" id="supervise"> Контролируемый режим</label></div>
-      <div class="hint" style="margin-left:22px">Wi-Fi ставится без нажатий, но в Настройках вверху будет надпись «iPhone под надзором и контролем …» (убирается только стиранием). Без него Wi-Fi нужно подтвердить: Настройки → «Профиль загружен» → Установить.</div>
-      <div class="row"><span class="lbl">Организация</span><input type="text" id="org" value="iActivator"></div>
+      <div class="dev">
+        <div class="phone"><svg><use href="#i-phone"/></svg></div>
+        <select id="device"><option value="">Подключите iPhone кабелем…</option></select>
+        <button class="icon" id="refresh" title="Обновить"><svg><use href="#i-refresh"/></svg></button>
+      </div>
+      <div id="info" class="info"></div>
+      <div id="badges" class="badges"></div>
     </div>
 
+    <div class="grid">
+      <div class="card">
+        <h2>Язык и регион</h2>
+        <div class="row"><span class="lbl">Язык</span><select id="language"></select>
+          <button id="loadLangs" title="Загрузить все языки, которые поддерживает iPhone">Все</button></div>
+        <div class="row"><span class="lbl">Регион</span><select id="region"></select></div>
+        <div class="row"><span class="lbl">Часовой пояс</span><input type="text" id="timezone" value="Europe/Kyiv">
+          <label class="mini"><input type="checkbox" id="h24" checked> 24 ч</label></div>
+        <div class="row"><span class="lbl">Wi-Fi</span><select id="quickNet"></select></div>
+      </div>
+
+      <div class="card">
+        <h2>Режим</h2>
+        <label class="sw"><input type="checkbox" id="activate" checked><span class="t">Активировать<small>Через серверы Apple и интернет компьютера</small></span></label>
+        <label class="sw"><input type="checkbox" id="skip" checked><span class="t">Пропустить экраны настройки<small>Только на сброшенном iPhone</small></span></label>
+        <label class="sw" title="Wi-Fi ставится без нажатий, но в Настройках вверху будет надпись «iPhone под надзором и контролем …» — убирается только стиранием"><input type="checkbox" id="supervise"><span class="t">Контролируемый режим<small>Wi-Fi без нажатий, но с надписью в Настройках</small></span></label>
+        <label class="sw" title="При подключении нового iPhone сразу запускать с текущими настройками"><input type="checkbox" id="auto"><span class="t">Авто при подключении<small>Запуск сразу, как только iPhone подключён</small></span></label>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== Wi-Fi ======== -->
+  <section class="page" id="p-wifi">
+    <h1>Wi-Fi</h1>
     <div class="card">
-      <h2>Wi-Fi</h2>
       <div class="row"><span class="lbl">Сохранённые</span>
         <select id="saved"><option value="">— новая сеть —</option></select>
         <button id="saveNet">Сохранить</button>
-        <button id="delNet" class="danger" title="Удалить сохранённую сеть">✕</button></div>
+        <button id="delNet" class="icon ghost-danger" title="Удалить сохранённую сеть"><svg><use href="#i-trash"/></svg></button></div>
+      <div class="sep"></div>
       <div class="row"><span class="lbl">Сеть (SSID)</span><input type="text" id="ssid" autocomplete="off" placeholder="не ставить Wi-Fi"></div>
       <div class="row"><span class="lbl">Пароль</span><input type="password" id="password" autocomplete="off">
-        <label class="check"><input type="checkbox" id="showPass"> показать</label></div>
+        <label class="mini"><input type="checkbox" id="showPass"> показать</label></div>
       <div class="row"><span class="lbl">Защита</span><select id="security"></select></div>
-      <div class="row"><label class="check"><input type="checkbox" id="hidden"> Скрытая сеть</label>
-        <label class="check"><input type="checkbox" id="nomac" checked> Без «частного адреса» (фильтр MAC)</label></div>
-      <div class="hint">Пароль хранится в системной связке ключей. Активация не требует Wi-Fi — идёт через интернет компьютера.</div>
+      <div class="row"><span class="lbl"></span>
+        <label class="mini"><input type="checkbox" id="hidden"> Скрытая сеть</label>
+        <label class="mini" style="margin-left:14px"><input type="checkbox" id="nomac" checked> Без «частного адреса»</label></div>
+      <div class="sep"></div>
+      <div class="row" style="justify-content:space-between">
+        <span class="hint" style="margin:0">Пароли хранятся в системной связке ключей.</span>
+        <button id="wifiOnly"><svg><use href="#i-wifi"/></svg>Установить только Wi-Fi</button>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <div class="card" style="margin-top:12px">
-    <div class="row" style="margin:0 0 6px">
-      <h2 style="margin:0; flex:1">Проверка на неисправности</h2>
-      <button id="check">Проверить устройство</button>
+  <!-- ======== Диагностика ======== -->
+  <section class="page" id="p-check">
+    <h1>Диагностика</h1>
+    <div class="card">
+      <h2><span class="sp">Проверка на неисправности</span><button id="check"><svg><use href="#i-pulse"/></svg>Проверить</button></h2>
+      <div id="checkResults" class="empty">Батарея, зарядка, Wi-Fi, Bluetooth, модем, память, журналы сбоев за 30 дней, Локатор и MDM. iPhone должен быть разблокирован.</div>
     </div>
-    <div id="checkResults" class="empty">Батарея, зарядка, Wi-Fi, Bluetooth, модем, память, журналы сбоев за 30 дней, Локатор и MDM. iPhone должен быть разблокирован.</div>
-  </div>
+    <div class="card">
+      <h2>Опасная зона</h2>
+      <div class="row" style="justify-content:space-between">
+        <span class="hint" style="margin:0">Стирает все данные и сбрасывает iPhone к заводским настройкам.</span>
+        <button class="ghost-danger" id="erase"><svg><use href="#i-trash"/></svg>Стереть iPhone…</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== Журнал ======== -->
+  <section class="page" id="p-log">
+    <h1>Журнал</h1>
+    <div class="card"><pre id="log" class="empty"></pre></div>
+  </section>
+
+  <!-- ======== О программе ======== -->
+  <section class="page about" id="p-about">
+    <h1>О программе</h1>
+    <div class="card">
+      <div class="hero">
+        <div class="logo"><svg><use href="#i-bolt"/></svg></div>
+        <div><b>iActivator</b><span id="aboutVer">Версия —</span></div>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h2>Возможности</h2>
+        <ul class="feat">
+          <li>Активация iPhone через интернет компьютера</li>
+          <li>Любой язык и регион, включая Украину</li>
+          <li>Пропуск экранов настройки</li>
+          <li>Wi-Fi профилем с проверкой установки</li>
+          <li>Проверка Локатора, MDM и неисправностей</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Сведения</h2>
+        <dl id="aboutInfo"></dl>
+        <div class="sep"></div>
+        <button id="openData"><svg><use href="#i-folder"/></svg>Открыть папку данных</button>
+      </div>
+    </div>
+    <p class="hint" style="margin-top:14px">Программа не обходит Блокировку активации: iPhone, привязанный к чужому Apple ID, нужно снять с аккаунта владельца.</p>
+  </section>
 </main>
 
-<footer id="footer">
-  <div class="bar">
-    <button class="primary" id="start">▶ Запустить</button>
-    <button id="wifiOnly">Только Wi-Fi</button>
-    <div class="status" id="status" title="Показать журнал">Готово</div>
-    <button class="danger" id="erase">Стереть…</button>
-  </div>
-  <div id="log"></div>
-</footer>
+<div class="bar" id="bar">
+  <button class="primary" id="start"><svg><use href="#i-play"/></svg>Запустить</button>
+  <i class="spin"></i>
+  <div class="status" id="status" title="Открыть журнал">Готово</div>
+</div>
+</div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -130,12 +277,18 @@ function fill(select, items, selected) {
   for (const [label, value] of items) {
     const o = document.createElement("option");
     o.value = value; o.textContent = label;
-    if (value === selected) o.selected = true;
     select.appendChild(o);
   }
+  if (items.some(([, v]) => v === selected)) select.value = selected;
+}
+function show(page) {
+  document.querySelectorAll("nav a").forEach(a => a.classList.toggle("on", a.dataset.page === page));
+  document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === "p-" + page));
+  if (page === "log") $("log").scrollTop = $("log").scrollHeight;
 }
 function addLog(line) {
   const el = $("log");
+  el.classList.remove("empty");
   el.textContent += line + "\n";
   el.scrollTop = el.scrollHeight;
   $("status").textContent = line;
@@ -145,8 +298,13 @@ async function api(path, body) {
   return (await fetch(path, opts)).json();
 }
 const esc = s => String(s ?? "—").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const dot = s => `<i class="st ${s}"></i>`;
 
 // ---------- devices ----------
+function setConn(label) {
+  $("connDot").classList.toggle("on", !!label);
+  $("connText").textContent = label || "Нет устройства";
+}
 async function pollDevices(full) {
   let res;
   try { res = await api("/api/devices" + (full ? "?full=1" : "")); } catch { return; }
@@ -156,10 +314,12 @@ async function pollDevices(full) {
   known = new Set(res.map(d => d.serial));
   if (!res.length) {
     fill($("device"), [["Подключите iPhone кабелем…", ""]]);
+    setConn("");
     if (cur) { $("info").innerHTML = ""; $("badges").innerHTML = ""; info = null; addLog("iPhone отключён"); }
     return;
   }
   fill($("device"), res.map(d => [d.label, d.serial]), fresh ? fresh.serial : cur);
+  setConn($("device").selectedOptions[0]?.textContent);
   if (fresh) onDevice(true);
   else if (full) onDevice(false);
 }
@@ -169,12 +329,12 @@ async function onDevice(isNew) {
   if (!serial) return;
   if (isNew) addLog("Подключено устройство, читаю данные…");
   $("checkResults").className = "empty";
-  $("checkResults").textContent = "Нажмите «Проверить устройство».";
+  $("checkResults").textContent = "Нажмите «Проверить».";
   await loadInfo();
   const locks = await loadLocks();
   if (isNew) addLog("Данные устройства прочитаны");
   if (isNew && $("auto").checked && info && info.activation === "Unactivated") {
-    if (locks.some(r => r.status === "bad")) addLog("⛔ Авто-режим остановлен: устройство заблокировано (см. проверку выше)");
+    if (locks.some(r => r.status === "bad")) addLog("⛔ Авто-режим остановлен: устройство заблокировано");
     else { addLog("Авто-режим: запускаю активацию"); start(); }
   }
 }
@@ -185,36 +345,45 @@ async function loadInfo() {
   const d = await api("/api/info", { serial: $("device").value });
   if (d.error) { box.innerHTML = `<div class="empty">Не удалось прочитать: ${esc(d.error)}</div>`; info = null; return; }
   info = d;
-  const items = [["Модель", d.model], ["iOS", d.ios && `${d.ios} (${d.build})`], ["Модем", d.baseband],
-                 ["Серийный №", d.serial], ["Активация", d.activation === "Activated" ? "Активирован" : d.activation]];
+  const act = d.activation === "Activated" ? '<span class="good">Активирован</span>'
+            : d.activation === "Unactivated" ? '<span class="warn">Не активирован</span>' : esc(d.activation);
+  const items = [["Модель", esc(d.model)], ["iOS", esc(d.ios && `${d.ios} (${d.build})`)], ["Серийный №", esc(d.serial)],
+                 ["Модем", esc(d.baseband)], ["Активация", act]];
   const b = d.battery;
   if (b) {
-    if (b.level != null) items.push(["Заряд", `${b.level}%${b.charging ? " ⚡" : ""}`]);
     if (b.health != null) {
       const cls = b.health >= 85 ? "good" : b.health >= 80 ? "warn" : "bad";
-      items.push(["Ёмкость батареи", `<span class="${cls}">${b.health}%</span> · ${b.full_mah} / ${b.design_mah} мАч`, true]);
+      items.push(["Ёмкость батареи", `<span class="${cls}">${b.health}%</span> · ${b.full_mah}/${b.design_mah} мАч`]);
     }
-    if (b.cycles != null) items.push(["Циклы", b.cycles]);
+    if (b.level != null) items.push(["Заряд", `${b.level}%${b.charging ? " ⚡" : ""}`]);
+    if (b.cycles != null) items.push(["Циклы", esc(b.cycles)]);
   }
-  box.innerHTML = items.map(([k, v, raw]) => `<div><span>${k}</span><b>${raw ? v : esc(v)}</b></div>`).join("");
+  box.innerHTML = items.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join("");
 }
 
-const ICON = { ok:"✅", warn:"⚠️", bad:"❌", info:"ℹ️" };
 async function loadLocks() {
   const box = $("badges");
   box.innerHTML = '<div class="empty">Проверяю Локатор и MDM…</div>';
   const res = await api("/api/locks", { serial: $("device").value });
   if (res.error) { box.innerHTML = `<div class="empty">Локатор/MDM: ${esc(res.error)}</div>`; return []; }
-  box.innerHTML = res.map(r => `<div class="badge"><span>${ICON[r.status]}</span><div><b>${esc(r.name)}</b><small>${esc(r.detail)}</small></div></div>`).join("");
+  box.innerHTML = res.map(r => `<div class="badge">${dot(r.status)}<div><b>${esc(r.name)}</b><small>${esc(r.detail)}</small></div></div>`).join("");
   return res;
 }
 
 // ---------- settings ----------
+function fillNets() {
+  const cur = $("saved").value;
+  fill($("saved"), [["— новая сеть —", ""], ...networks.map(n => [n.ssid, n.ssid])], cur);
+  fill($("quickNet"), [["Не ставить", ""], ...networks.map(n => [n.ssid, n.ssid])], $("ssid").value.trim());
+  if ($("ssid").value.trim() && !networks.some(n => n.ssid === $("ssid").value.trim()))
+    fill($("quickNet"), [["Не ставить", ""], [$("ssid").value.trim() + " (не сохранена)", $("ssid").value.trim()],
+                         ...networks.map(n => [n.ssid, n.ssid])], $("ssid").value.trim());
+  $("netCount").textContent = networks.length || "";
+}
 async function loadSettings(applyLast) {
   const s = await api("/api/settings", {});
   networks = s.networks;
-  const cur = $("saved").value;
-  fill($("saved"), [["— новая сеть —", ""], ...networks.map(n => [n.ssid, n.ssid])], cur);
+  fillNets();
   if (!applyLast) return;
   const l = s.last;
   if (l.language) $("language").value = l.language;
@@ -222,23 +391,25 @@ async function loadSettings(applyLast) {
   if (l.timezone) $("timezone").value = l.timezone;
   for (const [id, key] of [["h24","h24"], ["activate","activate"], ["skip","skip_setup"], ["supervise","supervise"], ["auto","auto"]])
     if (key in l) $(id).checked = l[key];
-  if (l.organization) $("org").value = l.organization;
+  if (l.organization) org = l.organization;
   if (l.ssid && networks.some(n => n.ssid === l.ssid)) { $("saved").value = l.ssid; await pickNetwork(); }
 }
 async function pickNetwork() {
   const n = networks.find(n => n.ssid === $("saved").value);
-  if (!n) { $("ssid").value = ""; $("password").value = ""; return; }
+  if (!n) { $("ssid").value = ""; $("password").value = ""; fillNets(); return; }
   $("ssid").value = n.ssid; $("security").value = n.security;
   $("hidden").checked = n.hidden; $("nomac").checked = n.nomac;
   $("password").value = (await api("/api/network/password", { ssid: n.ssid })).password;
+  fillNets();
 }
+let org = "iActivator";
 function form() {
   return {
     serial: $("device").value,
     language: $("language").value, region: $("region").value, timezone: $("timezone").value, h24: $("h24").checked,
     ssid: $("ssid").value, password: $("password").value, security: $("security").value,
     hidden: $("hidden").checked, nomac: $("nomac").checked,
-    activate: $("activate").checked, skip_setup: $("skip").checked, supervise: $("supervise").checked, organization: $("org").value, auto: $("auto").checked,
+    activate: $("activate").checked, skip_setup: $("skip").checked, supervise: $("supervise").checked, organization: org, auto: $("auto").checked,
   };
 }
 let saveTimer;
@@ -255,7 +426,7 @@ function needDevice() {
 async function job(path, body) {
   const res = await api(path, body);
   if (res.error) { addLog("❌ " + res.error); alert(res.error); }
-  else if (body.ssid) loadSettings(false).then(() => { $("saved").value = body.ssid.trim(); });
+  else if (body.ssid) loadSettings(false).then(() => { $("saved").value = body.ssid.trim(); fillNets(); });
 }
 function start() { if (needDevice()) job("/api/run", form()); }
 
@@ -271,7 +442,7 @@ async function runCheck() {
     box.className = "";
     box.innerHTML = `<div class="summary ${bad ? "bad" : warn ? "warn" : "good"}">${
       bad ? `Найдены неисправности: ${bad}` : warn ? `Есть замечания: ${warn}` : "Неисправностей не найдено"}</div>
-      <div class="results">${res.map(r => `<div class="item"><span>${ICON[r.status]}</span><div><b>${esc(r.name)}</b><small>${esc(r.detail)}</small></div></div>`).join("")}</div>`;
+      <div class="results">${res.map(r => `<div class="item">${dot(r.status)}<div><b>${esc(r.name)}</b><small>${esc(r.detail)}</small></div></div>`).join("")}</div>`;
   } finally { $("check").disabled = false; }
 }
 
@@ -281,6 +452,7 @@ async function pollLog() {
     res.lines.forEach(addLog);
     logNext = res.next;
     for (const id of ["start", "wifiOnly", "erase"]) $(id).disabled = res.busy;
+    $("bar").classList.toggle("busy", res.busy);
     if (wasBusy && !res.busy) pollDevices(true);  // job finished: refresh state
     wasBusy = res.busy;
   } catch (e) { /* server stopped */ }
@@ -289,36 +461,49 @@ async function pollLog() {
 
 async function init() {
   const meta = await api("/api/meta");
-  fill($("language"), meta.languages.map(([n, c]) => [`${n} [${c}]`, c]), "uk");
+  fill($("language"), meta.languages.map(([n, c]) => [n, c]), "uk");
   regions = meta.regions;
-  fill($("region"), regions.map(([n, c]) => [`${n} [${c}]`, c]), "UA");
+  fill($("region"), regions.map(([n, c]) => [n, c]), "UA");
   fill($("security"), meta.security, "Any");
+  const a = meta.about;
+  $("ver").textContent = "версия " + a.version;
+  $("aboutVer").textContent = "Версия " + a.version + " · активация и настройка iPhone";
+  $("aboutInfo").innerHTML = [["Версия", a.version], ["Система", a.system], ["Python", a.python],
+    ["pymobiledevice3", a.pymobiledevice3], ["Папка данных", a.data_dir]]
+    .map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("");
+  $("log").textContent = "Журнал пуст";
+  $("log").classList.add("empty");
   await loadSettings(true);
+  $("log").textContent = "";
   pollLog();
   await pollDevices(true);
   setInterval(() => pollDevices(false), 3000);
   document.querySelectorAll("input, select").forEach(el => el.addEventListener("change", rememberForm));
 }
 
+document.querySelectorAll("nav a").forEach(a => a.onclick = () => show(a.dataset.page));
 $("refresh").onclick = () => pollDevices(true);
-$("device").onchange = () => onDevice(false);
+$("device").onchange = () => { setConn($("device").selectedOptions[0]?.textContent); onDevice(false); };
 $("check").onclick = runCheck;
 $("start").onclick = start;
-$("status").onclick = () => $("footer").classList.toggle("open");
+$("status").onclick = () => show("log");
+$("openData").onclick = () => api("/api/open-data", {});
 $("region").onchange = () => {
   const r = regions.find(([, c]) => c === $("region").value);
   if (r) $("timezone").value = r[2];
 };
+$("quickNet").onchange = async () => { $("saved").value = $("quickNet").value; await pickNetwork(); rememberForm(); };
+$("ssid").oninput = fillNets;
 $("showPass").onchange = () => { $("password").type = $("showPass").checked ? "text" : "password"; };
 $("saved").onchange = pickNetwork;
 $("saveNet").onclick = async () => {
   const ssid = $("ssid").value.trim();
   if (!ssid) return alert("Введите имя сети.");
-  const f = form();
-  const res = await api("/api/network/save", f);
+  const res = await api("/api/network/save", form());
   if (res.error) return alert(res.error);
   await loadSettings(false);
   $("saved").value = ssid;
+  fillNets();
   addLog(`Сеть «${ssid}» сохранена`);
 };
 $("delNet").onclick = async () => {
