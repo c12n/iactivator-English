@@ -221,6 +221,8 @@ async def get_device_details(serial: str) -> dict:
             "build": v.get("BuildVersion"),
             "baseband": v.get("BasebandVersion"),
             "serial": v.get("SerialNumber"),
+            "imei": v.get("InternationalMobileEquipmentIdentity"),
+            "imei2": v.get("InternationalMobileEquipmentIdentity2"),
             "activation": v.get("ActivationState"),
             "battery": None,
         }

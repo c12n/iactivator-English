@@ -96,6 +96,18 @@
   .item b { display:block; font-weight:600; }
   .summary { font-weight:600; font-size:14px; margin:2px 0 10px; }
 
+  .stats { display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; margin-bottom:14px; }
+  .stat { background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow); border-radius:14px; padding:12px 16px; }
+  .stat b { display:block; font-size:24px; font-weight:600; letter-spacing:-.02em; } .stat span { color:var(--muted); font-size:12px; }
+  table { width:100%; border-collapse:collapse; }
+  th { text-align:left; font-weight:500; color:var(--muted); font-size:11.5px; padding:6px 8px; }
+  td { padding:9px 8px; border-top:1px solid var(--line); vertical-align:top; }
+  tr.dev-row { cursor:pointer; } tr.dev-row:hover td { background:var(--accent-soft); }
+  td.mono { font-family:ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size:12px; }
+  .ev { display:grid; grid-template-columns:130px 14px 150px 1fr; gap:8px; padding:4px 0; align-items:start; }
+  .ev .st { margin-top:6px; } .ev time { color:var(--muted); font-size:12px; } .ev small { color:var(--muted); }
+  tr.events td { background:var(--field); border-top:0; padding:8px 16px; }
+  @media (max-width: 860px) { .stats { grid-template-columns:1fr 1fr; } .ev { grid-template-columns:1fr; } }
   #log { white-space:pre-wrap; font:11.5px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; max-height:calc(100vh - 170px); overflow:auto; margin:0; }
 
   .about dl { display:grid; grid-template-columns:150px 1fr; gap:8px 12px; margin:0; }
@@ -131,6 +143,7 @@
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></symbol>
   <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="currentColor" stroke="none"/></symbol>
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
   <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></symbol>
 </svg>
 
@@ -143,6 +156,7 @@
     <a data-page="activate" class="on"><svg><use href="#i-bolt"/></svg><span>Активация</span></a>
     <a data-page="wifi"><svg><use href="#i-wifi"/></svg><span>Wi-Fi</span><span class="count" id="netCount"></span></a>
     <a data-page="check"><svg><use href="#i-pulse"/></svg><span>Диагностика</span></a>
+    <a data-page="history"><svg><use href="#i-clock"/></svg><span>История</span><span class="count" id="histCount"></span></a>
     <a data-page="log"><svg><use href="#i-list"/></svg><span>Журнал</span></a>
     <a data-page="about"><svg><use href="#i-info"/></svg><span>О программе</span></a>
   </nav>
@@ -224,6 +238,28 @@
     </div>
   </section>
 
+  <!-- ======== История ======== -->
+  <section class="page" id="p-history">
+    <h1>История</h1>
+    <div class="stats">
+      <div class="stat"><b id="sTotal">0</b><span>Всего устройств</span></div>
+      <div class="stat"><b id="sToday">0</b><span>Сегодня</span></div>
+      <div class="stat"><b id="sActivated">0</b><span>Активировано</span></div>
+      <div class="stat"><b id="sFaulty">0</b><span>С замечаниями</span></div>
+    </div>
+    <div class="card">
+      <div class="row" style="margin-top:0">
+        <input type="text" id="histSearch" placeholder="Поиск по серийному номеру, IMEI или модели">
+        <button id="histOpen" title="Файл со всей историей — открывается в Excel"><svg><use href="#i-folder"/></svg>Открыть файл</button>
+      </div>
+      <table>
+        <thead><tr><th>Модель</th><th>Серийный №</th><th>IMEI</th><th>Последнее действие</th></tr></thead>
+        <tbody id="histBody"></tbody>
+      </table>
+      <div id="histEmpty" class="empty" style="padding:10px 8px">Пока пусто — устройства появятся здесь после подключения.</div>
+    </div>
+  </section>
+
   <!-- ======== Журнал ======== -->
   <section class="page" id="p-log">
     <h1>Журнал</h1>
@@ -284,6 +320,7 @@ function fill(select, items, selected) {
 function show(page) {
   document.querySelectorAll("nav a").forEach(a => a.classList.toggle("on", a.dataset.page === page));
   document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id === "p-" + page));
+  if (page === "history") loadHistory();
   if (page === "log") $("log").scrollTop = $("log").scrollHeight;
 }
 function addLog(line) {
@@ -330,8 +367,9 @@ async function onDevice(isNew) {
   if (isNew) addLog("Подключено устройство, читаю данные…");
   $("checkResults").className = "empty";
   $("checkResults").textContent = "Нажмите «Проверить».";
-  await loadInfo();
-  const locks = await loadLocks();
+  await loadInfo(isNew);
+  const locks = await loadLocks(isNew);
+  loadHistory();
   if (isNew) addLog("Данные устройства прочитаны");
   if (isNew && $("auto").checked && info && info.activation === "Unactivated") {
     if (locks.some(r => r.status === "bad")) addLog("⛔ Авто-режим остановлен: устройство заблокировано");
@@ -339,16 +377,17 @@ async function onDevice(isNew) {
   }
 }
 
-async function loadInfo() {
+async function loadInfo(record) {
   const box = $("info");
   box.innerHTML = '<div class="empty">Читаю данные…</div>';
-  const d = await api("/api/info", { serial: $("device").value });
+  const d = await api("/api/info", { serial: $("device").value, record: !!record });
   if (d.error) { box.innerHTML = `<div class="empty">Не удалось прочитать: ${esc(d.error)}</div>`; info = null; return; }
   info = d;
   const act = d.activation === "Activated" ? '<span class="good">Активирован</span>'
             : d.activation === "Unactivated" ? '<span class="warn">Не активирован</span>' : esc(d.activation);
   const items = [["Модель", esc(d.model)], ["iOS", esc(d.ios && `${d.ios} (${d.build})`)], ["Серийный №", esc(d.serial)],
-                 ["Модем", esc(d.baseband)], ["Активация", act]];
+                 ["IMEI", esc(d.imei)], ["Активация", act]];
+  if (d.imei2) items.splice(4, 0, ["IMEI 2", esc(d.imei2)]);
   const b = d.battery;
   if (b) {
     if (b.health != null) {
@@ -361,10 +400,10 @@ async function loadInfo() {
   box.innerHTML = items.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join("");
 }
 
-async function loadLocks() {
+async function loadLocks(record) {
   const box = $("badges");
   box.innerHTML = '<div class="empty">Проверяю Локатор и MDM…</div>';
-  const res = await api("/api/locks", { serial: $("device").value });
+  const res = await api("/api/locks", { serial: $("device").value, record: !!record });
   if (res.error) { box.innerHTML = `<div class="empty">Локатор/MDM: ${esc(res.error)}</div>`; return []; }
   box.innerHTML = res.map(r => `<div class="badge">${dot(r.status)}<div><b>${esc(r.name)}</b><small>${esc(r.detail)}</small></div></div>`).join("");
   return res;
@@ -437,6 +476,7 @@ async function runCheck() {
   box.className = "empty"; box.textContent = "Проверяю… (до минуты)";
   try {
     const res = await api("/api/check", { serial: $("device").value });
+    loadHistory();
     if (res.error) { box.textContent = "❌ " + res.error; return; }
     const bad = res.filter(r => r.status === "bad").length, warn = res.filter(r => r.status === "warn").length;
     box.className = "";
@@ -446,6 +486,48 @@ async function runCheck() {
   } finally { $("check").disabled = false; }
 }
 
+// ---------- history ----------
+let hist = { devices: [] }, openRow = null;
+const RES = { ok:"ok", warn:"warn", error:"bad", info:"" };
+async function loadHistory() {
+  try { hist = await api("/api/history"); } catch { return; }
+  const st = hist.stats;
+  $("sTotal").textContent = st.total; $("sToday").textContent = st.today;
+  $("sActivated").textContent = st.activated; $("sFaulty").textContent = st.faulty;
+  $("histCount").textContent = st.total || "";
+  renderHistory();
+}
+function renderHistory() {
+  const q = $("histSearch").value.trim().toLowerCase();
+  const list = hist.devices.filter(d => !q || [d.serial, d.imei, d.imei2, d.model, d.name].some(v => v && v.toLowerCase().includes(q)));
+  $("histEmpty").style.display = list.length ? "none" : "";
+  $("histEmpty").textContent = hist.devices.length ? "Ничего не найдено" : "Пока пусто — устройства появятся здесь после подключения.";
+  $("histBody").innerHTML = list.map(d => {
+    const last = d.events[d.events.length - 1];
+    const row = `<tr class="dev-row" data-serial="${esc(d.serial)}">
+      <td><b>${esc(d.model)}</b><br><small class="empty">iOS ${esc(d.ios)}${d.battery != null ? " · батарея " + d.battery + "%" : ""}</small></td>
+      <td class="mono">${esc(d.serial)}</td>
+      <td class="mono">${esc(d.imei)}${d.imei2 ? "<br>" + esc(d.imei2) : ""}</td>
+      <td>${last ? `<div style="display:flex;gap:8px">${dot(RES[last.result])}<div><b>${esc(last.action)}</b><br><small class="empty">${esc(last.time)} · событий: ${d.events.length}</small></div></div>` : "—"}</td></tr>`;
+    if (openRow !== d.serial) return row;
+    const evs = [...d.events].reverse().map(e => `<div class="ev"><time>${esc(e.time)}</time>${dot(RES[e.result])}<b>${esc(e.action)}</b><small>${esc(e.detail || "")}</small></div>`).join("");
+    return row + `<tr class="events"><td colspan="4">${evs || '<span class="empty">Событий нет</span>'}
+      <div style="text-align:right;margin-top:6px"><button class="ghost-danger" data-del="${esc(d.serial)}">Удалить из истории</button></div></td></tr>`;
+  }).join("");
+}
+$("histSearch").oninput = renderHistory;
+$("histOpen").onclick = () => api("/api/history/open", {});
+$("histBody").onclick = async e => {
+  const del = e.target.closest("[data-del]");
+  if (del) {
+    if (!confirm(`Удалить устройство ${del.dataset.del} из истории?`)) return;
+    await api("/api/history/delete", { serial: del.dataset.del });
+    openRow = null; return loadHistory();
+  }
+  const tr = e.target.closest("tr.dev-row");
+  if (tr) { openRow = openRow === tr.dataset.serial ? null : tr.dataset.serial; renderHistory(); }
+};
+
 async function pollLog() {
   try {
     const res = await api("/api/log?since=" + logNext);
@@ -453,7 +535,7 @@ async function pollLog() {
     logNext = res.next;
     for (const id of ["start", "wifiOnly", "erase"]) $(id).disabled = res.busy;
     $("bar").classList.toggle("busy", res.busy);
-    if (wasBusy && !res.busy) pollDevices(true);  // job finished: refresh state
+    if (wasBusy && !res.busy) { pollDevices(true); loadHistory(); }  // job finished: refresh state
     wasBusy = res.busy;
   } catch (e) { /* server stopped */ }
   setTimeout(pollLog, 700);
@@ -476,6 +558,7 @@ async function init() {
   await loadSettings(true);
   $("log").textContent = "";
   pollLog();
+  loadHistory();
   await pollDevices(true);
   setInterval(() => pollDevices(false), 3000);
   document.querySelectorAll("input, select").forEach(el => el.addEventListener("change", rememberForm));

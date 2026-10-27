@@ -16,7 +16,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import __version__, core, settings
+from . import __version__, core, history, settings
 
 LANGUAGES = [
     ("Украинский", "uk"), ("Русский", "ru"), ("Английский (США)", "en"), ("Английский (Великобритания)", "en-GB"),
@@ -37,6 +37,8 @@ REGIONS = [
     ("ОАЭ", "AE", "Asia/Dubai"), ("США", "US", "America/New_York"),
     ("Канада", "CA", "America/Toronto"), ("Китай", "CN", "Asia/Shanghai"),
 ]
+
+ACTIVATION = {"Activated": "активирован", "Unactivated": "не активирован"}
 
 PAGE = (Path(__file__).parent / "page.html").read_text(encoding="utf-8")
 
@@ -104,12 +106,26 @@ class State:
 STATE = State()
 
 
-async def _with_activator(serial, fn):
+async def _with_activator(serial, fn, action, detail=""):
     act = core.Activator(serial, STATE.log)
     try:
         await fn(act)
+        history.add_event(serial, action, "ok", detail)
+    except Exception as e:
+        history.add_event(serial, action, "error", str(e) if isinstance(e, core.UserFacingError) else core.short_error(e))
+        raise
     finally:
         await act.close()
+
+
+def _record_checks(serial: str, action: str, results: list) -> None:
+    bad = [r for r in results if r["status"] == "bad"]
+    warn = [r for r in results if r["status"] == "warn"]
+    if bad or warn:
+        detail = "; ".join(f"{r['name']}: {r['detail']}" for r in bad + warn)
+        history.add_event(serial, action, "error" if bad else "warn", detail)
+    else:
+        history.add_event(serial, action, "ok", "Без замечаний")
 
 
 def _wifi(d: dict):
@@ -152,6 +168,8 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_GET(self):
+        if self.path == "/api/history":
+            return self._send(200, history.summary())
         if self.path == "/":
             return self._send(200, PAGE, "text/html; charset=utf-8")
         if self.path == "/api/meta":
@@ -203,6 +221,13 @@ class Handler(BaseHTTPRequestHandler):
             _open_folder(str(core.app_data_dir()))
             return self._send(200, {"ok": True})
 
+        if self.path == "/api/history/open":
+            _open_folder(str(history.csv_path() if history.csv_path().exists() else core.app_data_dir()))
+            return self._send(200, {"ok": True})
+        if self.path == "/api/history/delete":
+            history.delete(d.get("serial", ""))
+            return self._send(200, {"ok": True})
+
         if self.path == "/api/settings/last":
             settings.save_last(d)
             return self._send(200, {"ok": True})
@@ -213,13 +238,18 @@ class Handler(BaseHTTPRequestHandler):
 
         if self.path == "/api/locks":
             try:
-                return self._send(200, STATE.run(core.get_lock_checks(serial, check_activation=not STATE.busy)))
+                res = STATE.run(core.get_lock_checks(serial, check_activation=not STATE.busy))
+                if d.get("record"):
+                    _record_checks(serial, "Локатор и MDM", res)
+                return self._send(200, res)
             except Exception as e:
                 return self._send(200, {"error": core.short_error(e)})
 
         if self.path == "/api/check":
             try:
-                return self._send(200, STATE.run(core.run_health_check(serial, check_activation=not STATE.busy)))
+                res = STATE.run(core.run_health_check(serial, check_activation=not STATE.busy))
+                _record_checks(serial, "Диагностика", res)
+                return self._send(200, res)
             except Exception as e:
                 return self._send(200, {"error": core.short_error(e)})
 
@@ -242,20 +272,29 @@ class Handler(BaseHTTPRequestHandler):
 
         if self.path == "/api/info":
             try:
-                return self._send(200, STATE.run(core.get_device_details(serial)))
+                info = STATE.run(core.get_device_details(serial))
+                history.update_device(info)
+                if d.get("record"):
+                    b = info.get("battery") or {}
+                    history.add_event(serial, "Подключение", "info",
+                                      f"{ACTIVATION.get(info.get('activation'), info.get('activation'))}, iOS {info.get('ios')}"
+                                      + (f", батарея {b['health']}%" if b.get("health") is not None else ""))
+                return self._send(200, info)
             except Exception as e:
                 return self._send(200, {"error": core.short_error(e)})
 
         if self.path == "/api/run":
             opts = _options(d)
-            job = lambda: _with_activator(serial, lambda a: a.run(opts))
+            detail = f"{opts.language}, {opts.region}" + (f", Wi-Fi «{opts.wifi.ssid}»" if opts.wifi else "")
+            action = "Активация" if opts.activate else "Настройка"
+            job = lambda: _with_activator(serial, lambda a: a.run(opts), action, detail)
         elif self.path == "/api/wifi":
             wifi = _wifi(d)
             if wifi is None:
                 return self._send(400, {"error": "Введите имя сети"})
-            job = lambda: _with_activator(serial, lambda a: a.install_wifi_only(wifi))
+            job = lambda: _with_activator(serial, lambda a: a.install_wifi_only(wifi), "Wi-Fi", f"«{wifi.ssid}»")
         elif self.path == "/api/erase":
-            job = lambda: _with_activator(serial, lambda a: a.erase())
+            job = lambda: _with_activator(serial, lambda a: a.erase(), "Стирание")
         else:
             return self._send(404, {"error": "not found"})
         if not STATE.run_job(job):
