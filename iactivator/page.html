@@ -29,6 +29,12 @@
   .info { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:8px 16px; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
   .info div span { display:block; color:var(--muted); font-size:12px; }
   .info div b { font-weight:600; }
+  .check-item { display:flex; gap:10px; padding:7px 0; border-top:1px solid var(--line); }
+  .check-item:first-child { border-top:0; }
+  .check-item .dot { flex:none; width:20px; text-align:center; }
+  .check-item b { display:block; }
+  .check-item small { color:var(--muted); }
+  .summary { font-weight:600; margin:8px 0 4px; }
   .good { color:#1a7f37; } .warn { color:#b25e00; } .bad { color:var(--danger); }
   #log { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; min-height:160px; max-height:320px; overflow:auto; white-space:pre-wrap; font:12px ui-monospace, Menlo, Consolas, monospace; }
 </style>
@@ -61,6 +67,10 @@
 
   <section>
     <h2>Wi-Fi (необязательно)</h2>
+    <div class="row"><label for="saved">Сохранённые</label>
+      <select id="saved"><option value="">— новая сеть —</option></select>
+      <button id="delNet" class="danger">Удалить</button>
+    </div>
     <div class="row"><label for="ssid">Сеть (SSID)</label><input type="text" id="ssid" autocomplete="off"></div>
     <div class="row"><label for="password">Пароль</label>
       <input type="password" id="password" autocomplete="off">
@@ -71,7 +81,17 @@
       <label class="check"><input type="checkbox" id="hidden"> Скрытая сеть</label>
       <label class="check"><input type="checkbox" id="nomac" checked> Отключить «частный адрес» (для фильтра по MAC)</label>
     </div>
+    <div class="row"><label class="check"><input type="checkbox" id="remember" checked> Запомнить сеть и пароль на этом компьютере</label></div>
     <div class="hint">Активация идёт через интернет компьютера, Wi-Fi нужен только чтобы телефон сразу был в сети.</div>
+  </section>
+
+  <section>
+    <h2>Проверка на неисправности</h2>
+    <div class="row">
+      <button id="check">Проверить устройство</button>
+      <span class="hint">Батарея, зарядка, Wi-Fi, Bluetooth, модем, память, журналы сбоев за 30 дней. iPhone должен быть разблокирован.</span>
+    </div>
+    <div id="checkResults"></div>
   </section>
 
   <section>
@@ -122,6 +142,7 @@ async function init() {
   regions = meta.regions;
   fill($("region"), regions.map(([n, c]) => [`${n} [${c}]`, c]), "UA");
   fill($("security"), meta.security, "Any");
+  await loadSettings(true);
   refresh();
   pollLog();
 }
@@ -187,7 +208,58 @@ function form() {
     ssid: $("ssid").value, password: $("password").value, security: $("security").value,
     hidden: $("hidden").checked, nomac: $("nomac").checked,
     activate: $("activate").checked, skip_setup: $("skip").checked, organization: $("org").value,
+    remember: $("remember").checked,
   };
+}
+
+let networks = [];
+async function loadSettings(applyLast) {
+  const s = await api("/api/settings", {});
+  networks = s.networks;
+  const cur = $("saved").value;
+  fill($("saved"), [["— новая сеть —", ""], ...networks.map(n => [n.ssid, n.ssid])], cur);
+  if (!applyLast) return;
+  const l = s.last;
+  if (l.language) $("language").value = l.language;
+  if (l.region) $("region").value = l.region;
+  if (l.timezone) $("timezone").value = l.timezone;
+  for (const [id, key] of [["h24", "h24"], ["activate", "activate"], ["skip", "skip_setup"]])
+    if (key in l) $(id).checked = l[key];
+  if (l.organization) $("org").value = l.organization;
+  if (l.ssid && networks.some(n => n.ssid === l.ssid)) { $("saved").value = l.ssid; await pickNetwork(); }
+}
+async function pickNetwork() {
+  const n = networks.find(n => n.ssid === $("saved").value);
+  if (!n) { $("ssid").value = ""; $("password").value = ""; return; }
+  $("ssid").value = n.ssid; $("security").value = n.security;
+  $("hidden").checked = n.hidden; $("nomac").checked = n.nomac;
+  $("password").value = (await api("/api/network/password", { ssid: n.ssid })).password;
+}
+
+const ICON = { ok: "✅", warn: "⚠️", bad: "❌" };
+async function runCheck() {
+  if (!serial()) return;
+  const box = $("checkResults");
+  $("check").disabled = true;
+  box.textContent = "Проверяю… (до минуты)";
+  try {
+    const res = await api("/api/check", { serial: $("device").value });
+    if (res.error) { box.textContent = "❌ " + res.error; return; }
+    const bad = res.filter(r => r.status === "bad").length, warn = res.filter(r => r.status === "warn").length;
+    box.innerHTML = "";
+    const sum = document.createElement("div");
+    sum.className = "summary " + (bad ? "bad" : warn ? "warn" : "good");
+    sum.textContent = bad ? `Найдены неисправности: ${bad}` : warn ? `Есть замечания: ${warn}` : "Неисправностей не найдено";
+    box.appendChild(sum);
+    for (const r of res) {
+      const el = document.createElement("div");
+      el.className = "check-item";
+      el.innerHTML = `<span class="dot">${ICON[r.status]}</span><div><b></b><small></small></div>`;
+      el.querySelector("b").textContent = r.name;
+      el.querySelector("small").textContent = r.detail;
+      box.appendChild(el);
+    }
+  } finally { $("check").disabled = false; }
 }
 async function job(path, body) {
   const res = await api(path, body);
@@ -205,7 +277,17 @@ async function pollLog() {
 }
 
 $("refresh").onclick = refresh;
-$("device").onchange = loadInfo;
+$("device").onchange = () => { loadInfo(); $("checkResults").innerHTML = ""; };
+$("check").onclick = runCheck;
+$("saved").onchange = pickNetwork;
+$("delNet").onclick = async () => {
+  const ssid = $("saved").value;
+  if (!ssid || !confirm(`Удалить сохранённую сеть «${ssid}» и её пароль?`)) return;
+  $("saved").value = "";
+  await api("/api/network/delete", { ssid });
+  await loadSettings(false);
+  pickNetwork();
+};
 $("region").onchange = () => {
   const r = regions.find(([, c]) => c === $("region").value);
   if (r) $("timezone").value = r[2];

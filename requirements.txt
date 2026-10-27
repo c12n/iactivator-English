@@ -1,3 +1,4 @@
 pymobiledevice3
 pywebview
+keyring
 pyinstaller

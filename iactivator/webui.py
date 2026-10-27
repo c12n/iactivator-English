@@ -14,7 +14,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import core
+from . import core, settings
 
 LANGUAGES = [
     ("Украинский", "uk"), ("Русский", "ru"), ("Английский (США)", "en"), ("Английский (Великобритания)", "en-GB"),
@@ -152,9 +152,34 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(403, {"error": "forbidden"})
         length = int(self.headers.get("Content-Length", 0))
         d = json.loads(self.rfile.read(length) or b"{}")
+
+        if self.path == "/api/settings":
+            return self._send(200, settings.load())
+        if self.path == "/api/network/password":
+            return self._send(200, {"password": settings.get_password(d.get("ssid", ""))})
+        if self.path == "/api/network/delete":
+            settings.delete_network(d.get("ssid", ""))
+            return self._send(200, settings.load())
+
         serial = d.get("serial")
         if not serial:
             return self._send(400, {"error": "Не выбрано устройство"})
+
+        if self.path == "/api/check":
+            try:
+                return self._send(200, STATE.run(core.run_health_check(serial)))
+            except Exception as e:
+                return self._send(200, {"error": str(e)})
+
+        if self.path in ("/api/run", "/api/wifi"):
+            # Remember the form (and the network, if asked) before the job starts.
+            try:
+                settings.save_last(d)
+                if d.get("remember") and d.get("ssid", "").strip():
+                    settings.save_network(d["ssid"], d.get("password", ""), d.get("security", "Any"),
+                                          bool(d.get("hidden")), bool(d.get("nomac", True)))
+            except Exception as e:
+                STATE.log(f"⚠ Не удалось сохранить сеть: {e}")
 
         if self.path == "/api/languages":
             try:

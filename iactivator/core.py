@@ -6,6 +6,7 @@ Windows (needs Apple Devices / iTunes drivers) and macOS.
 from __future__ import annotations
 
 import asyncio
+import json
 import plistlib
 import sys
 import uuid
@@ -209,6 +210,150 @@ async def get_device_details(serial: str) -> dict:
             if level is not None:
                 info["battery"] = {"level": level}
         return info
+    finally:
+        await lockdown.close()
+
+
+# Substring of a panic log -> what usually is at fault. Checked in order, first match wins.
+PANIC_HINTS = [
+    ("missing sensor", "Не найден датчик — чаще всего шлейф зарядки, микрофон или датчик на шлейфе кнопок"),
+    ("thermalmonitord", "Датчик температуры не отвечает — шлейф зарядки/кнопок, батарея или плата"),
+    ("smc panic", "Контроллер питания (SMC) — батарея, шлейф зарядки или плата"),
+    ("aop panic", "Сопроцессор датчиков (AOP) — датчики, шлейфы или плата"),
+    ("i2c", "Ошибка шины I2C — шлейф или компонент на плате"),
+    ("baseband", "Модем — проблема со связью / платой модема"),
+    ("nand", "Память (NAND) — неисправность накопителя"),
+    ("ans2", "Контроллер памяти (ANS) — неисправность накопителя"),
+    ("agx", "Графический процессор"),
+    ("watchdog", "Устройство зависло и перезагрузилось (watchdog) — ПО или плата"),
+]
+
+
+def _check(name, status, detail):
+    return {"name": name, "status": status, "detail": detail}
+
+
+async def _panic_checks(lockdown, days: int = 30) -> list[dict]:
+    from datetime import datetime, timedelta
+    from pymobiledevice3.services.crash_reports import CrashReportsManager
+
+    since = datetime.now() - timedelta(days=days)
+    async with CrashReportsManager(lockdown) as crm:
+        files = [f for f in await crm.ls("/", depth=2) if "panic-full" in f.lower() or "panic-base" in f.lower()]
+        recent = []
+        for f in files:
+            try:
+                # panic-full-2024-05-01-123456.0002.ips
+                stamp = f.rsplit("/", 1)[-1].split("panic-")[1].split("-", 1)[1][:17]
+                when = datetime.strptime(stamp, "%Y-%m-%d-%H%M%S")
+            except (IndexError, ValueError):
+                continue
+            if when >= since:
+                recent.append((when, f))
+        recent.sort(reverse=True)
+        if not recent:
+            return [_check("Перезагрузки (panic)", "ok", f"Сбоев за {days} дней нет")]
+
+        reasons: dict[str, int] = {}
+        for _, f in recent[:10]:
+            try:
+                text = (await crm.afc.get_file_contents(f)).decode("utf-8", "replace")
+            except Exception:
+                continue
+            body = text.split("\n", 1)[-1]
+            try:
+                panic = json.loads(body).get("panicString", body)
+            except ValueError:
+                panic = body
+            low = panic.lower()
+            hint = next((h for key, h in PANIC_HINTS if key in low), None)
+            if hint is None:
+                hint = "Прочее: " + panic.strip().splitlines()[0][:120] if panic.strip() else "Неизвестная причина"
+            reasons[hint] = reasons.get(hint, 0) + 1
+
+    status = "bad" if len(recent) >= 3 else "warn"
+    detail = f"{len(recent)} сбоев за {days} дней (последний {recent[0][0]:%d.%m.%Y %H:%M}). " + "; ".join(
+        f"{h} ×{n}" for h, n in sorted(reasons.items(), key=lambda x: -x[1]))
+    return [_check("Перезагрузки (panic)", status, detail)]
+
+
+async def run_health_check(serial: str) -> list[dict]:
+    lockdown = await create_using_usbmux(serial=serial, autopair=True, pair_timeout=60)
+    results: list[dict] = []
+    try:
+        v = lockdown.all_values
+
+        # Battery
+        battery = None
+        try:
+            async with DiagnosticsService(lockdown) as diag:
+                raw = await diag.get_battery()
+            battery = _battery_info(raw or {}) | {"external": bool((raw or {}).get("ExternalConnected"))}
+        except Exception as e:
+            results.append(_check("Батарея", "warn", f"Нет доступа к диагностике (разблокируйте iPhone): {e}"))
+        if battery:
+            h, cyc = battery.get("health"), battery.get("cycles")
+            if h is None:
+                results.append(_check("Ёмкость батареи", "warn", "Устройство не сообщило ёмкость"))
+            else:
+                st = "ok" if h >= 85 else "warn" if h >= 80 else "bad"
+                note = {"ok": "в норме", "warn": "износ заметен", "bad": "рекомендуется замена"}[st]
+                results.append(_check("Ёмкость батареи", st, f"{h}% ({battery['full_mah']} из {battery['design_mah']} мАч) — {note}"))
+            if cyc is not None:
+                st = "ok" if cyc < 500 else "warn" if cyc < 1000 else "bad"
+                results.append(_check("Циклы зарядки", st, str(cyc)))
+            t = battery.get("temperature")
+            if t is not None:
+                st = "ok" if t < 40 else "warn" if t < 45 else "bad"
+                results.append(_check("Температура батареи", st, f"{t} °C"))
+            level = battery.get("level")
+            if battery["external"] and not battery["charging"] and level is not None and level < 80:
+                results.append(_check("Зарядка", "warn",
+                                      f"Кабель подключён, но заряд ({level}%) не идёт — проверьте кабель, порт или контроллер зарядки"))
+
+        # Radios: an empty address / missing modem firmware usually means a chip that did not start
+        for key, name in (("WiFiAddress", "Wi-Fi модуль"), ("BluetoothAddress", "Bluetooth")):
+            addr = v.get(key)
+            ok = bool(addr) and addr.replace(":", "").strip("0") != ""
+            results.append(_check(name, "ok" if ok else "bad", addr if ok else "Адрес отсутствует — модуль не определяется"))
+        if v.get("TelephonyCapability"):
+            if not v.get("BasebandVersion"):
+                results.append(_check("Модем", "bad", "Нет версии прошивки модема — модем не запустился"))
+            elif not v.get("InternationalMobileEquipmentIdentity"):
+                results.append(_check("Модем", "bad", "IMEI не читается"))
+            else:
+                results.append(_check("Модем", "ok", f"прошивка {v.get('BasebandVersion')}"))
+
+        # Storage
+        try:
+            du = await lockdown.get_value("com.apple.disk_usage") or {}
+            total, free = du.get("TotalDiskCapacity"), du.get("AmountDataAvailable")
+            if total and free is not None:
+                pct = free * 100 / total
+                st = "ok" if pct >= 10 else "warn" if pct >= 3 else "bad"
+                results.append(_check("Память", st, f"свободно {free / 1e9:.1f} из {total / 1e9:.0f} ГБ ({pct:.0f}%)"))
+        except Exception:
+            pass
+
+        # Kernel panics
+        try:
+            results.extend(await _panic_checks(lockdown))
+        except Exception as e:
+            results.append(_check("Перезагрузки (panic)", "warn", f"Не удалось прочитать журналы: {e}"))
+
+        # Management
+        try:
+            async with MobileConfigService(lockdown) as mc:
+                cc = await mc.get_cloud_configuration() or {}
+            if cc.get("IsSupervised") or cc.get("OrganizationName"):
+                results.append(_check("Управление (MDM)", "warn",
+                                      f"Устройство под управлением: {cc.get('OrganizationName') or 'неизвестно'}"))
+        except Exception:
+            pass
+
+        if v.get("ActivationState") == "Unactivated":
+            results.append(_check("Активация", "warn", "Не активировано"))
+        return results
     finally:
         await lockdown.close()
 
