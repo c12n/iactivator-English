@@ -147,7 +147,7 @@ class Handler(BaseHTTPRequestHandler):
                     STATE.labels = {d.serial: d.label() for d in STATE.run(core.list_devices())}
                 return self._send(200, [{"serial": s, "label": STATE.labels.get(s, s)} for s in serials])
             except Exception as e:
-                return self._send(200, {"error": f"Не удалось получить список устройств: {e}"})
+                return self._send(200, {"error": f"Не удалось получить список устройств: {core.short_error(e)}"})
         self._send(404, {"error": "not found"})
 
     def do_POST(self):
@@ -171,25 +171,25 @@ class Handler(BaseHTTPRequestHandler):
             settings.delete_network(d.get("ssid", ""))
             return self._send(200, settings.load())
 
+        if self.path == "/api/settings/last":
+            settings.save_last(d)
+            return self._send(200, {"ok": True})
+
         serial = d.get("serial")
         if not serial:
             return self._send(400, {"error": "Не выбрано устройство"})
 
         if self.path == "/api/locks":
             try:
-                return self._send(200, STATE.run(core.get_lock_checks(serial)))
+                return self._send(200, STATE.run(core.get_lock_checks(serial, check_activation=not STATE.busy)))
             except Exception as e:
                 return self._send(200, {"error": core.short_error(e)})
 
         if self.path == "/api/check":
             try:
-                return self._send(200, STATE.run(core.run_health_check(serial)))
+                return self._send(200, STATE.run(core.run_health_check(serial, check_activation=not STATE.busy)))
             except Exception as e:
-                return self._send(200, {"error": str(e)})
-
-        if self.path == "/api/settings/last":
-            settings.save_last(d)
-            return self._send(200, {"ok": True})
+                return self._send(200, {"error": core.short_error(e)})
 
         if self.path in ("/api/run", "/api/wifi"):
             # Remember the form (and the network, if asked) before the job starts.
@@ -206,13 +206,13 @@ class Handler(BaseHTTPRequestHandler):
                 langs, _ = STATE.run(core.get_supported_languages(serial))
                 return self._send(200, langs)
             except Exception as e:
-                return self._send(200, {"error": str(e)})
+                return self._send(200, {"error": core.short_error(e)})
 
         if self.path == "/api/info":
             try:
                 return self._send(200, STATE.run(core.get_device_details(serial)))
             except Exception as e:
-                return self._send(200, {"error": str(e)})
+                return self._send(200, {"error": core.short_error(e)})
 
         if self.path == "/api/run":
             opts = _options(d)

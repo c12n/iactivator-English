@@ -161,7 +161,7 @@ async def list_devices() -> list[DeviceInfo]:
             ))
             await lockdown.close()
         except Exception as e:  # device busy / not trusted yet
-            result.append(DeviceInfo(dev.serial, "Устройство", "?", "?", f"нет доступа: {e}"))
+            result.append(DeviceInfo(dev.serial, "Устройство", "?", "?", "нет доступа — разблокируйте iPhone"))
     return result
 
 
@@ -180,23 +180,25 @@ def _battery_info(raw: dict) -> dict:
     between iOS versions, so several spellings are tried."""
     data = raw.get("BatteryData") or {}
 
-    def first(*keys):
+    def first(*keys, allow_zero=False):
         for k in keys:
             for src in (raw, data):
-                if isinstance(src.get(k), (int, float)) and src.get(k) > 0:
-                    return src[k]
+                val = src.get(k)
+                if isinstance(val, (int, float)) and not isinstance(val, bool) and (val > 0 or (allow_zero and val == 0)):
+                    return val
         return None
 
     design = first("DesignCapacity")
     full = first("AppleRawMaxCapacity", "NominalChargeCapacity", "MaxCapacity")
     if full is not None and full <= 100 and design and design > 100:
         full = None  # MaxCapacity is a percentage on some versions, not mAh
+    level = first("CurrentCapacity", allow_zero=True)
     result = {
-        "level": first("CurrentCapacity") if (first("CurrentCapacity") or 0) <= 100 else None,
+        "level": level if level is not None and level <= 100 else None,
         "charging": bool(raw.get("IsCharging")),
         "design_mah": design,
         "full_mah": full,
-        "cycles": first("CycleCount"),
+        "cycles": first("CycleCount", allow_zero=True),  # a new battery has 0 cycles
         "health": round(full * 100 / design) if full and design else None,
     }
     temp = first("Temperature")
@@ -261,14 +263,17 @@ async def _panic_checks(lockdown, days: int = 30) -> list[dict]:
     async with CrashReportsManager(lockdown) as crm:
         files = [f for f in await crm.ls("/", depth=2) if "panic-full" in f.lower() or "panic-base" in f.lower()]
         recent = []
-        for f in files:
+        seen = set()
+        # One panic is often saved twice (panic-full and panic-base); prefer the full one
+        for f in sorted(files, key=lambda f: "panic-base" in f.lower()):
             try:
                 # panic-full-2024-05-01-123456.0002.ips
                 stamp = f.rsplit("/", 1)[-1].split("panic-")[1].split("-", 1)[1][:17]
                 when = datetime.strptime(stamp, "%Y-%m-%d-%H%M%S")
             except (IndexError, ValueError):
                 continue
-            if when >= since:
+            if when >= since and when not in seen:
+                seen.add(when)
                 recent.append((when, f))
         recent.sort(reverse=True)
         if not recent:
@@ -322,12 +327,17 @@ async def _activation_lock_status(lockdown) -> Optional[bool]:
     return None
 
 
-async def lock_checks(lockdown, own_cert: Optional[bytes] = None) -> list[dict]:
-    """Find My (Activation Lock) and MDM / remote management."""
+async def lock_checks(lockdown, own_cert: Optional[bytes] = None, check_activation: bool = True) -> list[dict]:
+    """Find My (Activation Lock) and MDM / remote management.
+
+    check_activation=False skips the activation-server query, which must not run while
+    the same device is being activated (both use the device's activation session)."""
     results = []
     v = lockdown.all_values
 
-    if v.get("ActivationState") == "Unactivated":
+    if v.get("ActivationState") == "Unactivated" and not check_activation:
+        results.append(_check("Локатор (блокировка активации)", "info", "Проверка отложена — идёт активация"))
+    elif v.get("ActivationState") == "Unactivated":
         try:
             locked = await _activation_lock_status(lockdown)
             if locked:
@@ -386,10 +396,10 @@ async def lock_checks(lockdown, own_cert: Optional[bytes] = None) -> list[dict]:
     return results
 
 
-async def get_lock_checks(serial: str) -> list[dict]:
+async def get_lock_checks(serial: str, check_activation: bool = True) -> list[dict]:
     lockdown = await create_using_usbmux(serial=serial, autopair=True, pair_timeout=60)
     try:
-        return await lock_checks(lockdown, _own_cert())
+        return await lock_checks(lockdown, _own_cert(), check_activation)
     finally:
         await lockdown.close()
 
@@ -399,7 +409,7 @@ def _own_cert() -> Optional[bytes]:
     return _cert_der(path) if path.exists() else None
 
 
-async def run_health_check(serial: str) -> list[dict]:
+async def run_health_check(serial: str, check_activation: bool = True) -> list[dict]:
     lockdown = await create_using_usbmux(serial=serial, autopair=True, pair_timeout=60)
     results: list[dict] = []
     try:
@@ -412,7 +422,7 @@ async def run_health_check(serial: str) -> list[dict]:
                 raw = await diag.get_battery()
             battery = _battery_info(raw or {}) | {"external": bool((raw or {}).get("ExternalConnected"))}
         except Exception as e:
-            results.append(_check("Батарея", "warn", f"Нет доступа к диагностике (разблокируйте iPhone): {e}"))
+            results.append(_check("Батарея", "warn", f"Нет доступа к диагностике (разблокируйте iPhone): {short_error(e)}"))
         if battery:
             h, cyc = battery.get("health"), battery.get("cycles")
             if h is None:
@@ -461,9 +471,9 @@ async def run_health_check(serial: str) -> list[dict]:
         try:
             results.extend(await _panic_checks(lockdown))
         except Exception as e:
-            results.append(_check("Перезагрузки (panic)", "warn", f"Не удалось прочитать журналы: {e}"))
+            results.append(_check("Перезагрузки (panic)", "warn", f"Не удалось прочитать журналы: {short_error(e)}"))
 
-        results = await lock_checks(lockdown, _own_cert()) + results
+        results = await lock_checks(lockdown, _own_cert(), check_activation) + results
         return results
     finally:
         await lockdown.close()
@@ -545,32 +555,56 @@ class Activator:
         self.log(f"Устройство: {v.get('ProductType')} iOS {v.get('ProductVersion')}, "
                  f"состояние: {v.get('ActivationState')}")
 
-        # Order matters: once the iPhone gets online during setup it fetches its own
-        # (empty) cloud configuration from Apple, and iOS refuses to replace it after
-        # that. So the skip-setup configuration goes first — before activation if the
-        # device allows it, otherwise right after — and Wi-Fi is installed last.
-        keybag = keybag_path(opts.organization) if opts.skip_setup else None
-        applied = False
-        if keybag is not None and v.get("ActivationState") == "Unactivated":
-            try:
-                await self.apply_cloud_configuration(opts, keybag)
-                applied = True
-            except UserFacingError:
-                raise
-            except Exception:
-                await self.connect()  # not accepted before activation on this iOS; retry after
-
+        # Order matters. Once the iPhone gets online during setup, Setup Assistant fetches
+        # its own (empty) configuration from Apple and overwrites ours — the screens then
+        # show up again. So: activate over USB (the iPhone stays offline), apply the
+        # skip-setup configuration, and give it Wi-Fi only after setup has finished.
+        # (The configuration service is not available before activation.)
         if opts.activate:
             await self.activate()
         await self.set_language_region(opts)
 
-        if keybag is not None and not applied:
+        keybag = None
+        if opts.skip_setup:
+            keybag = keybag_path(opts.organization)
             await self.apply_cloud_configuration(opts, keybag)
+        elif await self.setup_finished() is False:
+            self.log("ℹ «Пропустить все экраны настройки» выключено — экраны на iPhone нужно пройти вручную.")
 
         if opts.wifi:
+            if keybag is not None and await self.setup_finished() is False:
+                self.log("📱 Проведите вверх по экрану iPhone — он перейдёт на главный экран без настроек. "
+                         "Wi-Fi установлю сразу после этого.")
+                if not await self.wait_setup_finished(timeout=600):
+                    self.log("⚠ iPhone не завершил настройку за 10 минут. Wi-Fi не установлен — "
+                             "нажмите «Только Wi-Fi», когда iPhone будет на главном экране.")
+                    return
             await self.install_wifi(opts.wifi, keybag)
 
-        self.log("✅ Готово. Если iPhone ещё на экране «Привет» — проведите вверх / нажмите «Домой».")
+        self.log("✅ Готово. Если iPhone ещё на экране «Привет» — проведите вверх.")
+
+    async def setup_finished(self) -> Optional[bool]:
+        try:
+            return bool(await self.lockdown.get_value("com.apple.purplebuddy", "SetupDone"))
+        except Exception:
+            return None
+
+    async def wait_setup_finished(self, timeout: float) -> bool:
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout
+        while loop.time() < deadline:
+            await asyncio.sleep(3)
+            done = await self.setup_finished()
+            if done is None:  # connection dropped (cable, lock screen); reconnect quietly
+                try:
+                    self.lockdown = await create_using_usbmux(serial=self.serial, autopair=True, pair_timeout=30)
+                except Exception:
+                    continue
+            elif done:
+                self.log("iPhone завершил настройку.")
+                await asyncio.sleep(3)  # let Setup Assistant close before installing profiles
+                return True
+        return False
 
     async def activate(self) -> None:
         # Activation goes through this computer's internet connection over USB,
