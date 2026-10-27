@@ -17,22 +17,22 @@ from pathlib import Path
 from . import core
 
 LANGUAGES = [
-    ("Українська", "uk"), ("Русский", "ru"), ("English (US)", "en"), ("English (UK)", "en-GB"),
-    ("Polski", "pl"), ("Deutsch", "de"), ("Français", "fr"), ("Español", "es"), ("Italiano", "it"),
-    ("Português (BR)", "pt-BR"), ("Türkçe", "tr"), ("Română", "ro"), ("Čeština", "cs"),
-    ("Slovenčina", "sk"), ("Magyar", "hu"), ("Қазақ", "kk"), ("עברית", "he"), ("العربية", "ar"),
-    ("中文 (简体)", "zh-Hans"), ("中文 (繁體)", "zh-Hant"), ("日本語", "ja"), ("한국어", "ko"),
+    ("Украинский", "uk"), ("Русский", "ru"), ("Английский (США)", "en"), ("Английский (Великобритания)", "en-GB"),
+    ("Польский", "pl"), ("Немецкий", "de"), ("Французский", "fr"), ("Испанский", "es"), ("Итальянский", "it"),
+    ("Португальский (Бразилия)", "pt-BR"), ("Турецкий", "tr"), ("Румынский", "ro"), ("Чешский", "cs"),
+    ("Словацкий", "sk"), ("Венгерский", "hu"), ("Казахский", "kk"), ("Иврит", "he"), ("Арабский", "ar"),
+    ("Китайский (упрощ.)", "zh-Hans"), ("Китайский (традиц.)", "zh-Hant"), ("Японский", "ja"), ("Корейский", "ko"),
 ]
 
 REGIONS = [
-    ("Україна", "UA", "Europe/Kyiv"), ("Польща", "PL", "Europe/Warsaw"),
-    ("Німеччина", "DE", "Europe/Berlin"), ("Чехія", "CZ", "Europe/Prague"),
-    ("Молдова", "MD", "Europe/Chisinau"), ("Румунія", "RO", "Europe/Bucharest"),
-    ("Казахстан", "KZ", "Asia/Almaty"), ("Грузія", "GE", "Asia/Tbilisi"),
-    ("Туреччина", "TR", "Europe/Istanbul"), ("Велика Британія", "GB", "Europe/London"),
-    ("Франція", "FR", "Europe/Paris"), ("Італія", "IT", "Europe/Rome"),
-    ("Іспанія", "ES", "Europe/Madrid"), ("Ізраїль", "IL", "Asia/Jerusalem"),
-    ("ОАЕ", "AE", "Asia/Dubai"), ("США", "US", "America/New_York"),
+    ("Украина", "UA", "Europe/Kyiv"), ("Польша", "PL", "Europe/Warsaw"),
+    ("Германия", "DE", "Europe/Berlin"), ("Чехия", "CZ", "Europe/Prague"),
+    ("Молдова", "MD", "Europe/Chisinau"), ("Румыния", "RO", "Europe/Bucharest"),
+    ("Казахстан", "KZ", "Asia/Almaty"), ("Грузия", "GE", "Asia/Tbilisi"),
+    ("Турция", "TR", "Europe/Istanbul"), ("Великобритания", "GB", "Europe/London"),
+    ("Франция", "FR", "Europe/Paris"), ("Италия", "IT", "Europe/Rome"),
+    ("Испания", "ES", "Europe/Madrid"), ("Израиль", "IL", "Asia/Jerusalem"),
+    ("ОАЭ", "AE", "Asia/Dubai"), ("США", "US", "America/New_York"),
     ("Канада", "CA", "America/Toronto"), ("Китай", "CN", "Asia/Shanghai"),
 ]
 
