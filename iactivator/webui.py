@@ -9,7 +9,6 @@ import asyncio
 import json
 import socket
 import threading
-import traceback
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -46,6 +45,7 @@ class State:
         self.lock = threading.Lock()
         self.lines: list[str] = []
         self.busy = False
+        self.labels: dict[str, str] = {}
 
     def log(self, msg: str) -> None:
         with self.lock:
@@ -68,7 +68,7 @@ class State:
             except core.UserFacingError as e:
                 self.log(f"❌ {e}")
             except Exception as e:
-                self.log("❌ Ошибка: " + "".join(traceback.format_exception_only(type(e), e)).strip())
+                self.log("❌ Ошибка: " + core.short_error(e))
             finally:
                 self.busy = False
         asyncio.run_coroutine_threadsafe(job(), self.loop)
@@ -138,10 +138,14 @@ class Handler(BaseHTTPRequestHandler):
                 lines = STATE.lines[since:]
                 total = len(STATE.lines)
             return self._send(200, {"lines": lines, "next": total, "busy": STATE.busy})
-        if self.path == "/api/devices":
+        if self.path.startswith("/api/devices"):
+            # Polled every few seconds: cheap usbmux listing, full labels only for new devices
+            # or when the page asks for a refresh.
             try:
-                devs = STATE.run(core.list_devices())
-                return self._send(200, [{"serial": d.serial, "label": d.label()} for d in devs])
+                serials = STATE.run(core.connected_serials())
+                if "full=1" in self.path or any(s not in STATE.labels for s in serials):
+                    STATE.labels = {d.serial: d.label() for d in STATE.run(core.list_devices())}
+                return self._send(200, [{"serial": s, "label": STATE.labels.get(s, s)} for s in serials])
             except Exception as e:
                 return self._send(200, {"error": f"Не удалось получить список устройств: {e}"})
         self._send(404, {"error": "not found"})
@@ -157,6 +161,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, settings.load())
         if self.path == "/api/network/password":
             return self._send(200, {"password": settings.get_password(d.get("ssid", ""))})
+        if self.path == "/api/network/save":
+            if not d.get("ssid", "").strip():
+                return self._send(400, {"error": "Введите имя сети"})
+            settings.save_network(d["ssid"], d.get("password", ""), d.get("security", "Any"),
+                                  bool(d.get("hidden")), bool(d.get("nomac", True)))
+            return self._send(200, settings.load())
         if self.path == "/api/network/delete":
             settings.delete_network(d.get("ssid", ""))
             return self._send(200, settings.load())
@@ -165,17 +175,27 @@ class Handler(BaseHTTPRequestHandler):
         if not serial:
             return self._send(400, {"error": "Не выбрано устройство"})
 
+        if self.path == "/api/locks":
+            try:
+                return self._send(200, STATE.run(core.get_lock_checks(serial)))
+            except Exception as e:
+                return self._send(200, {"error": core.short_error(e)})
+
         if self.path == "/api/check":
             try:
                 return self._send(200, STATE.run(core.run_health_check(serial)))
             except Exception as e:
                 return self._send(200, {"error": str(e)})
 
+        if self.path == "/api/settings/last":
+            settings.save_last(d)
+            return self._send(200, {"ok": True})
+
         if self.path in ("/api/run", "/api/wifi"):
             # Remember the form (and the network, if asked) before the job starts.
             try:
                 settings.save_last(d)
-                if d.get("remember") and d.get("ssid", "").strip():
+                if d.get("ssid", "").strip():
                     settings.save_network(d["ssid"], d.get("password", ""), d.get("security", "Any"),
                                           bool(d.get("hidden")), bool(d.get("nomac", True)))
             except Exception as e:
@@ -233,7 +253,7 @@ def main():
 
     if webview is not None:
         threading.Thread(target=server.serve_forever, daemon=True).start()
-        webview.create_window("iActivator — активация iPhone", url, width=820, height=920, min_size=(560, 600))
+        webview.create_window("iActivator — активация iPhone", url, width=1180, height=860, min_size=(600, 600))
         webview.start()
         return
 

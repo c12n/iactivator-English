@@ -25,7 +25,12 @@ from pymobiledevice3.exceptions import (
 )
 from pymobiledevice3.lockdown import LockdownClient, create_using_usbmux
 from pymobiledevice3.services.diagnostics import DiagnosticsService
-from pymobiledevice3.services.mobile_activation import MobileActivationService
+from pymobiledevice3.services.mobile_activation import (
+    ACTIVATION_DEFAULT_URL as ACTIVATION_URL,
+    ACTIVATION_DRM_HANDSHAKE_DEFAULT_URL as ACTIVATION_DRM_HANDSHAKE_URL,
+    DEFAULT_HEADERS as ACTIVATION_HEADERS,
+    MobileActivationService,
+)
 from pymobiledevice3.services.mobile_config import MobileConfigService
 
 Log = Callable[[str], None]
@@ -122,6 +127,21 @@ class DeviceInfo:
 
 class UserFacingError(Exception):
     """An error whose message is already written for the user."""
+
+
+def short_error(e: Optional[BaseException]) -> str:
+    """Device errors carry a whole response dict; keep only the human-readable part."""
+    text = str(e)
+    if "LocalizedDescription" in text:
+        import re
+        m = re.search(r"'LocalizedDescription': '([^']*)'", text)
+        if m:
+            return m.group(1)
+    return text[:300]
+
+
+async def connected_serials() -> list[str]:
+    return [d.serial for d in await usbmux.list_devices() if d.connection_type == "USB"]
 
 
 async def list_devices() -> list[DeviceInfo]:
@@ -277,6 +297,108 @@ async def _panic_checks(lockdown, days: int = 30) -> list[dict]:
     return [_check("Перезагрузки (panic)", status, detail)]
 
 
+async def _activation_lock_status(lockdown) -> Optional[bool]:
+    """Ask Apple's activation server, the same way the iPhone does during setup,
+    whether the device is locked to an Apple ID. Nothing is applied to the device.
+    Only meaningful before activation; returns None when the answer is unknown."""
+    service = MobileActivationService(lockdown)
+    headers = {"Content-Type": "application/x-apple-plist", **ACTIVATION_HEADERS}
+    try:
+        blob = await service.create_activation_session_info()
+        handshake, _ = await asyncio.to_thread(
+            service.post, ACTIVATION_DRM_HANDSHAKE_URL, plistlib.dumps(blob), headers)
+        info = await service.create_activation_info_with_session(handshake)
+        request = {"activation-info": plistlib.dumps(info)}
+    except Exception:
+        # Older iOS without session activation
+        request = {"activation-info": plistlib.dumps(await lockdown.get_value(key="ActivationInfo"))}
+    content, resp_headers = await asyncio.to_thread(service.post, ACTIVATION_URL, request)
+    ctype = resp_headers.get("Content-Type", "")
+    if "buddyml" in ctype:
+        # A login form (Apple ID / password fields) means Activation Lock.
+        return b"editableTextRow" in content or b"secure" in content
+    if "xml" in ctype:
+        return False  # an activation record came back: no lock
+    return None
+
+
+async def lock_checks(lockdown, own_cert: Optional[bytes] = None) -> list[dict]:
+    """Find My (Activation Lock) and MDM / remote management."""
+    results = []
+    v = lockdown.all_values
+
+    if v.get("ActivationState") == "Unactivated":
+        try:
+            locked = await _activation_lock_status(lockdown)
+            if locked:
+                results.append(_check("Локатор (блокировка активации)", "bad",
+                                      "Устройство привязано к Apple ID. Нужен пароль владельца или отвязка на icloud.com/find"))
+            elif locked is False:
+                results.append(_check("Локатор (блокировка активации)", "ok", "Блокировки нет"))
+            else:
+                results.append(_check("Локатор (блокировка активации)", "warn", "Сервер Apple не дал однозначного ответа"))
+        except Exception as e:
+            results.append(_check("Локатор (блокировка активации)", "warn",
+                                  f"Не удалось проверить (нужен интернет): {short_error(e)}"))
+    else:
+        results.append(_check("Локатор (блокировка активации)", "info",
+                              "Устройство уже активировано — по USB статус не узнать. "
+                              "Проверьте на iPhone: Настройки → [имя] → Локатор. "
+                              "Перед продажей/сбросом его нужно выключить"))
+
+    try:
+        async with MobileConfigService(lockdown) as mc:
+            cc = await mc.get_cloud_configuration() or {}
+            profiles = await mc.get_profile_list()
+    except Exception as e:
+        results.append(_check("MDM (удалённое управление)", "warn", f"Не удалось прочитать: {short_error(e)}"))
+        return results
+
+    ours = own_cert is not None and own_cert in cc.get("SupervisorHostCertificates", [])
+    org = cc.get("OrganizationName")
+    if ours:
+        results.append(_check("MDM (удалённое управление)", "ok", "Под контролем этого компьютера (iActivator)"))
+    elif cc.get("IsMDMUnremovable") or cc.get("ConfigurationURL"):
+        results.append(_check("MDM (удалённое управление)", "bad",
+                              f"Устройство в корпоративной программе (Apple Business Manager): {org or 'организация неизвестна'}. "
+                              "Удалить может только владелец организации"))
+    elif cc.get("IsSupervised") or org:
+        results.append(_check("MDM (удалённое управление)", "warn",
+                              f"Контролируемый режим: {org or 'неизвестная организация'} (снимается стиранием)"))
+    else:
+        results.append(_check("MDM (удалённое управление)", "ok", "Не управляется"))
+
+    meta = profiles.get("ProfileMetadata", {})
+    foreign = {pid: m for pid, m in meta.items() if not pid.startswith("com.iactivator.")}
+    locked_profiles = [m.get("PayloadDisplayName", pid) for pid, m in foreign.items() if m.get("PayloadRemovalDisallowed")]
+    if locked_profiles:
+        results.append(_check("Профили", "bad", "Неудаляемые профили: " + ", ".join(locked_profiles)))
+    elif foreign:
+        results.append(_check("Профили", "warn", "Установлены профили: " +
+                              ", ".join(m.get("PayloadDisplayName", pid) for pid, m in foreign.items())))
+
+    try:
+        r = await lockdown.get_value("com.apple.mobile.restriction") or {}
+        if r.get("ProhibitAppInstall") or r.get("ProhibitAppDelete"):
+            results.append(_check("Ограничения", "warn", "Запрещена установка/удаление приложений"))
+    except Exception:
+        pass
+    return results
+
+
+async def get_lock_checks(serial: str) -> list[dict]:
+    lockdown = await create_using_usbmux(serial=serial, autopair=True, pair_timeout=60)
+    try:
+        return await lock_checks(lockdown, _own_cert())
+    finally:
+        await lockdown.close()
+
+
+def _own_cert() -> Optional[bytes]:
+    path = app_data_dir() / "supervision_keybag.pem"
+    return _cert_der(path) if path.exists() else None
+
+
 async def run_health_check(serial: str) -> list[dict]:
     lockdown = await create_using_usbmux(serial=serial, autopair=True, pair_timeout=60)
     results: list[dict] = []
@@ -341,18 +463,7 @@ async def run_health_check(serial: str) -> list[dict]:
         except Exception as e:
             results.append(_check("Перезагрузки (panic)", "warn", f"Не удалось прочитать журналы: {e}"))
 
-        # Management
-        try:
-            async with MobileConfigService(lockdown) as mc:
-                cc = await mc.get_cloud_configuration() or {}
-            if cc.get("IsSupervised") or cc.get("OrganizationName"):
-                results.append(_check("Управление (MDM)", "warn",
-                                      f"Устройство под управлением: {cc.get('OrganizationName') or 'неизвестно'}"))
-        except Exception:
-            pass
-
-        if v.get("ActivationState") == "Unactivated":
-            results.append(_check("Активация", "warn", "Не активировано"))
+        results = await lock_checks(lockdown, _own_cert()) + results
         return results
     finally:
         await lockdown.close()
@@ -527,18 +638,22 @@ class Activator:
         for attempt in (1, 2, 3):
             try:
                 async with MobileConfigService(self.lockdown) as mc:
+                    if keybag is None:
+                        # Without supervision iOS only accepts the profile as "downloaded";
+                        # the user has to confirm it once in Settings.
+                        await mc.install_profile(profile)
+                        self.log("  📱 На iPhone: Настройки → «Профиль загружен» (вверху) → Установить. "
+                                 "Чтобы Wi-Fi ставился без нажатий, включите «Пропустить экраны настройки» "
+                                 "до активации (на сброшенном iPhone).")
+                        return
+                    await mc.install_profile_silent(keybag, profile)
                     # The radio is often left off after a skipped setup: the profile is
-                    # installed but nothing connects. Force it on first.
+                    # installed but nothing connects. Turning it on needs the escalated
+                    # (supervisor) session that install_profile_silent just opened.
                     try:
                         await mc.set_wifi_power_state(True)
-                    except ProfileError as e:
-                        self.log(f"  ⚠ не удалось включить Wi-Fi модуль: {e}")
-                    if keybag is not None:
-                        await mc.install_profile_silent(keybag, profile)
-                    else:
-                        await mc.install_profile(profile)
-                        self.log("  На iPhone откройте Настройки → Профиль загружен и установите его.")
-                        return
+                    except ProfileError:
+                        pass
                     installed = (await mc.get_profile_list()).get("ProfileMetadata", {})
                 if profile_id in installed:
                     self.log("  Профиль Wi-Fi установлен и подтверждён устройством.")
@@ -546,10 +661,10 @@ class Activator:
                 last_error = UserFacingError("устройство не показало профиль после установки")
             except (ProfileError, ConnectionError, OSError) as e:
                 last_error = e
-            self.log(f"  попытка {attempt} не удалась: {last_error}; повтор…")
+            self.log(f"  попытка {attempt} не удалась: {short_error(last_error)}; повтор…")
             await asyncio.sleep(2)
             await self.connect()
-        raise UserFacingError(f"Не удалось установить профиль Wi-Fi: {last_error}")
+        raise UserFacingError(f"Не удалось установить профиль Wi-Fi: {short_error(last_error)}")
 
     async def install_wifi_only(self, wifi: WifiOptions) -> None:
         """Wi-Fi for an already set-up device: silent if this computer supervises it,

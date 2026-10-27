@@ -5,115 +5,123 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>iActivator</title>
 <style>
-  :root { --bg:#f5f5f7; --card:#fff; --text:#1d1d1f; --muted:#6e6e73; --line:#d2d2d7; --accent:#0071e3; --danger:#d70015; }
+  :root { --bg:#f5f5f7; --card:#fff; --text:#1d1d1f; --muted:#6e6e73; --line:#e3e3e8; --field:#f5f5f7;
+          --accent:#0071e3; --danger:#d70015; --good:#1a7f37; --warn:#b25e00; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#1c1c1e; --card:#2c2c2e; --text:#f5f5f7; --muted:#a1a1a6; --line:#3a3a3c; --accent:#0a84ff; --danger:#ff453a; }
+    :root { --bg:#1c1c1e; --card:#2c2c2e; --text:#f5f5f7; --muted:#a1a1a6; --line:#3a3a3c; --field:#1c1c1e;
+            --accent:#0a84ff; --danger:#ff453a; --good:#30d158; --warn:#ff9f0a; }
   }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--text); font:14px -apple-system, "Segoe UI", system-ui, sans-serif; }
-  main { max-width:760px; margin:0 auto; padding:20px 16px 40px; }
-  h1 { font-size:22px; margin:0 0 16px; }
-  section { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:12px; }
-  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:0 0 10px; }
-  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:6px 0; }
-  .row > label:first-child:not(.check) { width:120px; color:var(--muted); }
-  input[type=text], input[type=password], select { flex:1; min-width:180px; padding:7px 9px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); font:inherit; }
-  .check { display:flex; gap:6px; align-items:center; }
-  .hint { color:var(--muted); font-size:12px; margin-top:4px; }
-  button { padding:8px 14px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--text); font:inherit; cursor:pointer; }
-  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  body { margin:0; background:var(--bg); color:var(--text); font:13px -apple-system, "Segoe UI", system-ui, sans-serif; }
+  main { max-width:1180px; margin:0 auto; padding:12px 16px 96px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; }
+  h2 { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:0 0 8px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+  @media (max-width: 820px) { .grid { grid-template-columns:1fr; } }
+  .row { display:flex; gap:8px; align-items:center; margin:5px 0; }
+  .row > .lbl { width:96px; flex:none; color:var(--muted); }
+  input[type=text], input[type=password], select { flex:1; min-width:0; height:28px; padding:0 8px; border:1px solid var(--line);
+    border-radius:7px; background:var(--field); color:var(--text); font:inherit; }
+  .check { display:flex; gap:6px; align-items:center; white-space:nowrap; }
+  .hint { color:var(--muted); font-size:11px; }
+  button { height:28px; padding:0 12px; border-radius:7px; border:1px solid var(--line); background:var(--card); color:var(--text);
+    font:inherit; cursor:pointer; white-space:nowrap; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; height:34px; padding:0 18px; font-size:14px; }
   button.danger { color:var(--danger); }
   button:disabled { opacity:.5; cursor:default; }
-  .actions { display:flex; gap:8px; flex-wrap:wrap; }
-  .actions .spacer { flex:1; }
-  .info { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:8px 16px; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
-  .info div span { display:block; color:var(--muted); font-size:12px; }
-  .info div b { font-weight:600; }
-  .check-item { display:flex; gap:10px; padding:7px 0; border-top:1px solid var(--line); }
-  .check-item:first-child { border-top:0; }
-  .check-item .dot { flex:none; width:20px; text-align:center; }
-  .check-item b { display:block; }
-  .check-item small { color:var(--muted); }
-  .summary { font-weight:600; margin:8px 0 4px; }
-  .good { color:#1a7f37; } .warn { color:#b25e00; } .bad { color:var(--danger); }
-  #log { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; min-height:160px; max-height:320px; overflow:auto; white-space:pre-wrap; font:12px ui-monospace, Menlo, Consolas, monospace; }
+
+  .top { display:flex; gap:8px; align-items:center; }
+  .top h1 { font-size:16px; margin:0 8px 0 0; white-space:nowrap; }
+  .top select { height:30px; }
+  .info { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:6px 14px; }
+  .info span { display:block; color:var(--muted); font-size:11px; }
+  .info b { font-weight:600; }
+  .badges { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .badge { display:flex; gap:6px; align-items:flex-start; padding:6px 10px; border-radius:8px; background:var(--field); max-width:100%; }
+  .badge small { display:block; color:var(--muted); }
+  .good { color:var(--good); } .warn { color:var(--warn); } .bad { color:var(--danger); }
+  .empty { color:var(--muted); padding:6px 0; }
+
+  .results { display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
+  @media (max-width: 820px) { .results { grid-template-columns:1fr; } }
+  .item { display:flex; gap:8px; padding:6px 0; border-top:1px solid var(--line); }
+  .item b { display:block; } .item small { color:var(--muted); }
+  .summary { font-weight:600; margin:4px 0 6px; }
+
+  footer { position:fixed; left:0; right:0; bottom:0; background:var(--card); border-top:1px solid var(--line); }
+  footer .bar { max-width:1180px; margin:0 auto; padding:10px 16px; display:flex; gap:8px; align-items:center; }
+  footer .status { flex:1; min-width:0; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
+  #log { display:none; max-width:1180px; margin:0 auto; padding:0 16px 10px; max-height:220px; overflow:auto;
+    white-space:pre-wrap; font:11px ui-monospace, Menlo, Consolas, monospace; }
+  footer.open #log { display:block; }
 </style>
 </head>
 <body>
 <main>
-  <h1>iActivator — активация iPhone</h1>
+  <div class="card">
+    <div class="top">
+      <h1>iActivator</h1>
+      <select id="device"><option value="">Подключите iPhone кабелем…</option></select>
+      <button id="refresh" title="Обновить">↻</button>
+      <label class="check" title="При подключении нового iPhone сразу запускать активацию с текущими настройками">
+        <input type="checkbox" id="auto"> Авто при подключении</label>
+    </div>
+    <div id="info" class="info" style="margin-top:10px"></div>
+    <div id="badges" class="badges"></div>
+  </div>
 
-  <section>
-    <h2>Устройство</h2>
-    <div class="row">
-      <select id="device"><option value="">Поиск…</option></select>
-      <button id="refresh">Обновить</button>
+  <div class="grid">
+    <div class="card">
+      <h2>Настройка iPhone</h2>
+      <div class="row"><span class="lbl">Язык</span><select id="language"></select>
+        <button id="loadLangs" title="Загрузить все языки, которые поддерживает iPhone">Все</button></div>
+      <div class="row"><span class="lbl">Регион</span><select id="region"></select></div>
+      <div class="row"><span class="lbl">Часовой пояс</span><input type="text" id="timezone" value="Europe/Kyiv">
+        <label class="check"><input type="checkbox" id="h24" checked> 24 ч</label></div>
+      <div class="row"><label class="check"><input type="checkbox" id="activate" checked> Активировать через серверы Apple</label></div>
+      <div class="row"><label class="check"><input type="checkbox" id="skip" checked> <b>Пропустить все экраны настройки</b></label></div>
+      <div class="hint" style="margin-left:22px">Без нажатий на iPhone, Wi-Fi ставится сам. Работает на сброшенном iPhone до прохождения настройки; включает контролируемый режим (снимается стиранием).</div>
+      <div class="row"><span class="lbl">Организация</span><input type="text" id="org" value="iActivator"></div>
     </div>
-    <div id="info" class="info" hidden></div>
-  </section>
 
-  <section>
-    <h2>Язык и регион</h2>
-    <div class="row"><label for="language">Язык</label>
-      <select id="language"></select>
-      <button id="loadLangs">Все языки с iPhone</button>
+    <div class="card">
+      <h2>Wi-Fi</h2>
+      <div class="row"><span class="lbl">Сохранённые</span>
+        <select id="saved"><option value="">— новая сеть —</option></select>
+        <button id="saveNet">Сохранить</button>
+        <button id="delNet" class="danger" title="Удалить сохранённую сеть">✕</button></div>
+      <div class="row"><span class="lbl">Сеть (SSID)</span><input type="text" id="ssid" autocomplete="off" placeholder="не ставить Wi-Fi"></div>
+      <div class="row"><span class="lbl">Пароль</span><input type="password" id="password" autocomplete="off">
+        <label class="check"><input type="checkbox" id="showPass"> показать</label></div>
+      <div class="row"><span class="lbl">Защита</span><select id="security"></select></div>
+      <div class="row"><label class="check"><input type="checkbox" id="hidden"> Скрытая сеть</label>
+        <label class="check"><input type="checkbox" id="nomac" checked> Без «частного адреса» (фильтр MAC)</label></div>
+      <div class="hint">Пароль хранится в системной связке ключей. Активация не требует Wi-Fi — идёт через интернет компьютера.</div>
     </div>
-    <div class="row"><label for="region">Регион</label><select id="region"></select></div>
-    <div class="row"><label for="timezone">Часовой пояс</label>
-      <input type="text" id="timezone" value="Europe/Kyiv">
-      <label class="check"><input type="checkbox" id="h24" checked> 24 часа</label>
-    </div>
-  </section>
+  </div>
 
-  <section>
-    <h2>Wi-Fi (необязательно)</h2>
-    <div class="row"><label for="saved">Сохранённые</label>
-      <select id="saved"><option value="">— новая сеть —</option></select>
-      <button id="delNet" class="danger">Удалить</button>
-    </div>
-    <div class="row"><label for="ssid">Сеть (SSID)</label><input type="text" id="ssid" autocomplete="off"></div>
-    <div class="row"><label for="password">Пароль</label>
-      <input type="password" id="password" autocomplete="off">
-      <label class="check"><input type="checkbox" id="showPass"> показать</label>
-    </div>
-    <div class="row"><label for="security">Защита</label><select id="security"></select></div>
-    <div class="row">
-      <label class="check"><input type="checkbox" id="hidden"> Скрытая сеть</label>
-      <label class="check"><input type="checkbox" id="nomac" checked> Отключить «частный адрес» (для фильтра по MAC)</label>
-    </div>
-    <div class="row"><label class="check"><input type="checkbox" id="remember" checked> Запомнить сеть и пароль на этом компьютере</label></div>
-    <div class="hint">Активация идёт через интернет компьютера, Wi-Fi нужен только чтобы телефон сразу был в сети.</div>
-  </section>
-
-  <section>
-    <h2>Проверка на неисправности</h2>
-    <div class="row">
+  <div class="card" style="margin-top:12px">
+    <div class="row" style="margin:0 0 6px">
+      <h2 style="margin:0; flex:1">Проверка на неисправности</h2>
       <button id="check">Проверить устройство</button>
-      <span class="hint">Батарея, зарядка, Wi-Fi, Bluetooth, модем, память, журналы сбоев за 30 дней. iPhone должен быть разблокирован.</span>
     </div>
-    <div id="checkResults"></div>
-  </section>
+    <div id="checkResults" class="empty">Батарея, зарядка, Wi-Fi, Bluetooth, модем, память, журналы сбоев за 30 дней, Локатор и MDM. iPhone должен быть разблокирован.</div>
+  </div>
+</main>
 
-  <section>
-    <h2>Параметры</h2>
-    <div class="row"><label class="check"><input type="checkbox" id="activate" checked> Активировать через серверы Apple</label></div>
-    <div class="row"><label class="check"><input type="checkbox" id="skip" checked> Пропустить экраны настройки (контролируемый режим)</label></div>
-    <div class="row"><label for="org">Организация</label><input type="text" id="org" value="iActivator"></div>
-  </section>
-
-  <section class="actions">
+<footer id="footer">
+  <div class="bar">
     <button class="primary" id="start">▶ Запустить</button>
     <button id="wifiOnly">Только Wi-Fi</button>
-    <span class="spacer"></span>
-    <button class="danger" id="erase">Стереть устройство…</button>
-  </section>
-
+    <div class="status" id="status" title="Показать журнал">Готово</div>
+    <button class="danger" id="erase">Стереть…</button>
+  </div>
   <div id="log"></div>
-</main>
+</footer>
 
 <script>
 const $ = id => document.getElementById(id);
-let logNext = 0;
+let logNext = 0, regions = [], networks = [], known = new Set(), wasBusy = false, info = null;
 
 function fill(select, items, selected) {
   select.innerHTML = "";
@@ -128,91 +136,78 @@ function addLog(line) {
   const el = $("log");
   el.textContent += line + "\n";
   el.scrollTop = el.scrollHeight;
+  $("status").textContent = line;
 }
 async function api(path, body) {
   const opts = body ? { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) } : {};
-  const r = await fetch(path, opts);
-  return r.json();
+  return (await fetch(path, opts)).json();
 }
+const esc = s => String(s ?? "—").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-let regions = [];
-async function init() {
-  const meta = await api("/api/meta");
-  fill($("language"), meta.languages.map(([n, c]) => [`${n} [${c}]`, c]), "uk");
-  regions = meta.regions;
-  fill($("region"), regions.map(([n, c]) => [`${n} [${c}]`, c]), "UA");
-  fill($("security"), meta.security, "Any");
-  await loadSettings(true);
-  refresh();
-  pollLog();
-}
-
-async function refresh() {
-  addLog("Поиск устройств…");
-  fill($("device"), [["Поиск…", ""]]);
-  const res = await api("/api/devices");
-  if (res.error) { addLog("❌ " + res.error); fill($("device"), [["Нет устройств", ""]]); return; }
+// ---------- devices ----------
+async function pollDevices(full) {
+  let res;
+  try { res = await api("/api/devices" + (full ? "?full=1" : "")); } catch { return; }
+  if (res.error) return;
+  const cur = $("device").value;
+  const fresh = res.find(d => !known.has(d.serial));
+  known = new Set(res.map(d => d.serial));
   if (!res.length) {
-    fill($("device"), [["Нет устройств", ""]]);
-    addLog("Устройства не найдены. Проверьте кабель; разблокируйте iPhone. На Windows нужен «Apple Devices» или iTunes.");
+    fill($("device"), [["Подключите iPhone кабелем…", ""]]);
+    if (cur) { $("info").innerHTML = ""; $("badges").innerHTML = ""; info = null; addLog("iPhone отключён"); }
     return;
   }
-  fill($("device"), res.map(d => [d.label, d.serial]));
-  addLog(`Найдено устройств: ${res.length}`);
-  loadInfo();
+  fill($("device"), res.map(d => [d.label, d.serial]), fresh ? fresh.serial : cur);
+  if (fresh) onDevice(true);
+  else if (full) onDevice(false);
+}
+
+async function onDevice(isNew) {
+  const serial = $("device").value;
+  if (!serial) return;
+  if (isNew) addLog("Подключено устройство, читаю данные…");
+  $("checkResults").className = "empty";
+  $("checkResults").textContent = "Нажмите «Проверить устройство».";
+  await loadInfo();
+  const locks = await loadLocks();
+  if (isNew) addLog("Данные устройства прочитаны");
+  if (isNew && $("auto").checked && info && info.activation === "Unactivated") {
+    if (locks.some(r => r.status === "bad")) addLog("⛔ Авто-режим остановлен: устройство заблокировано (см. проверку выше)");
+    else { addLog("Авто-режим: запускаю активацию"); start(); }
+  }
 }
 
 async function loadInfo() {
   const box = $("info");
-  const serial = $("device").value;
-  if (!serial) { box.hidden = true; return; }
-  box.hidden = false;
-  box.textContent = "Читаю данные устройства…";
-  const d = await api("/api/info", { serial });
-  if (d.error) { box.textContent = "Не удалось прочитать данные: " + d.error; return; }
-  const items = [
-    ["Модель", d.model], ["Прошивка (iOS)", d.ios && `${d.ios} (${d.build})`],
-    ["Модем", d.baseband || "—"], ["Серийный номер", d.serial], ["Активация", d.activation],
-  ];
+  box.innerHTML = '<div class="empty">Читаю данные…</div>';
+  const d = await api("/api/info", { serial: $("device").value });
+  if (d.error) { box.innerHTML = `<div class="empty">Не удалось прочитать: ${esc(d.error)}</div>`; info = null; return; }
+  info = d;
+  const items = [["Модель", d.model], ["iOS", d.ios && `${d.ios} (${d.build})`], ["Модем", d.baseband],
+                 ["Серийный №", d.serial], ["Активация", d.activation === "Activated" ? "Активирован" : d.activation]];
   const b = d.battery;
   if (b) {
     if (b.level != null) items.push(["Заряд", `${b.level}%${b.charging ? " ⚡" : ""}`]);
     if (b.health != null) {
       const cls = b.health >= 85 ? "good" : b.health >= 80 ? "warn" : "bad";
-      items.push(["Ёмкость батареи", `<span class="${cls}">${b.health}%</span>`]);
+      items.push(["Ёмкость батареи", `<span class="${cls}">${b.health}%</span> · ${b.full_mah} / ${b.design_mah} мАч`, true]);
     }
-    if (b.full_mah) items.push(["Ёмкость, мАч", `${b.full_mah} из ${b.design_mah || "?"}`]);
-    if (b.cycles != null) items.push(["Циклы зарядки", b.cycles]);
-    if (b.temperature != null) items.push(["Температура", `${b.temperature} °C`]);
-  } else {
-    items.push(["Батарея", "нет данных (разблокируйте iPhone)"]);
+    if (b.cycles != null) items.push(["Циклы", b.cycles]);
   }
-  box.innerHTML = "";
-  for (const [k, v] of items) {
-    const el = document.createElement("div");
-    el.innerHTML = `<span>${k}</span><b>${v ?? "—"}</b>`;
-    box.appendChild(el);
-  }
+  box.innerHTML = items.map(([k, v, raw]) => `<div><span>${k}</span><b>${raw ? v : esc(v)}</b></div>`).join("");
 }
 
-function serial() {
-  const s = $("device").value;
-  if (!s) alert("Подключите iPhone кабелем и нажмите «Обновить».");
-  return s;
-}
-function form() {
-  return {
-    serial: $("device").value,
-    language: $("language").value, region: $("region").value,
-    timezone: $("timezone").value, h24: $("h24").checked,
-    ssid: $("ssid").value, password: $("password").value, security: $("security").value,
-    hidden: $("hidden").checked, nomac: $("nomac").checked,
-    activate: $("activate").checked, skip_setup: $("skip").checked, organization: $("org").value,
-    remember: $("remember").checked,
-  };
+const ICON = { ok:"✅", warn:"⚠️", bad:"❌", info:"ℹ️" };
+async function loadLocks() {
+  const box = $("badges");
+  box.innerHTML = '<div class="empty">Проверяю Локатор и MDM…</div>';
+  const res = await api("/api/locks", { serial: $("device").value });
+  if (res.error) { box.innerHTML = `<div class="empty">Локатор/MDM: ${esc(res.error)}</div>`; return []; }
+  box.innerHTML = res.map(r => `<div class="badge"><span>${ICON[r.status]}</span><div><b>${esc(r.name)}</b><small>${esc(r.detail)}</small></div></div>`).join("");
+  return res;
 }
 
-let networks = [];
+// ---------- settings ----------
 async function loadSettings(applyLast) {
   const s = await api("/api/settings", {});
   networks = s.networks;
@@ -223,7 +218,7 @@ async function loadSettings(applyLast) {
   if (l.language) $("language").value = l.language;
   if (l.region) $("region").value = l.region;
   if (l.timezone) $("timezone").value = l.timezone;
-  for (const [id, key] of [["h24", "h24"], ["activate", "activate"], ["skip", "skip_setup"]])
+  for (const [id, key] of [["h24","h24"], ["activate","activate"], ["skip","skip_setup"], ["auto","auto"]])
     if (key in l) $(id).checked = l[key];
   if (l.organization) $("org").value = l.organization;
   if (l.ssid && networks.some(n => n.ssid === l.ssid)) { $("saved").value = l.ssid; await pickNetwork(); }
@@ -235,35 +230,47 @@ async function pickNetwork() {
   $("hidden").checked = n.hidden; $("nomac").checked = n.nomac;
   $("password").value = (await api("/api/network/password", { ssid: n.ssid })).password;
 }
+function form() {
+  return {
+    serial: $("device").value,
+    language: $("language").value, region: $("region").value, timezone: $("timezone").value, h24: $("h24").checked,
+    ssid: $("ssid").value, password: $("password").value, security: $("security").value,
+    hidden: $("hidden").checked, nomac: $("nomac").checked,
+    activate: $("activate").checked, skip_setup: $("skip").checked, organization: $("org").value, auto: $("auto").checked,
+  };
+}
+let saveTimer;
+function rememberForm() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => api("/api/settings/last", form()), 500);
+}
 
-const ICON = { ok: "✅", warn: "⚠️", bad: "❌" };
-async function runCheck() {
-  if (!serial()) return;
-  const box = $("checkResults");
-  $("check").disabled = true;
-  box.textContent = "Проверяю… (до минуты)";
-  try {
-    const res = await api("/api/check", { serial: $("device").value });
-    if (res.error) { box.textContent = "❌ " + res.error; return; }
-    const bad = res.filter(r => r.status === "bad").length, warn = res.filter(r => r.status === "warn").length;
-    box.innerHTML = "";
-    const sum = document.createElement("div");
-    sum.className = "summary " + (bad ? "bad" : warn ? "warn" : "good");
-    sum.textContent = bad ? `Найдены неисправности: ${bad}` : warn ? `Есть замечания: ${warn}` : "Неисправностей не найдено";
-    box.appendChild(sum);
-    for (const r of res) {
-      const el = document.createElement("div");
-      el.className = "check-item";
-      el.innerHTML = `<span class="dot">${ICON[r.status]}</span><div><b></b><small></small></div>`;
-      el.querySelector("b").textContent = r.name;
-      el.querySelector("small").textContent = r.detail;
-      box.appendChild(el);
-    }
-  } finally { $("check").disabled = false; }
+// ---------- actions ----------
+function needDevice() {
+  if (!$("device").value) { alert("Подключите iPhone кабелем."); return false; }
+  return true;
 }
 async function job(path, body) {
   const res = await api(path, body);
   if (res.error) { addLog("❌ " + res.error); alert(res.error); }
+  else if (body.ssid) loadSettings(false).then(() => { $("saved").value = body.ssid.trim(); });
+}
+function start() { if (needDevice()) job("/api/run", form()); }
+
+async function runCheck() {
+  if (!needDevice()) return;
+  const box = $("checkResults");
+  $("check").disabled = true;
+  box.className = "empty"; box.textContent = "Проверяю… (до минуты)";
+  try {
+    const res = await api("/api/check", { serial: $("device").value });
+    if (res.error) { box.textContent = "❌ " + res.error; return; }
+    const bad = res.filter(r => r.status === "bad").length, warn = res.filter(r => r.status === "warn").length;
+    box.className = "";
+    box.innerHTML = `<div class="summary ${bad ? "bad" : warn ? "warn" : "good"}">${
+      bad ? `Найдены неисправности: ${bad}` : warn ? `Есть замечания: ${warn}` : "Неисправностей не найдено"}</div>
+      <div class="results">${res.map(r => `<div class="item"><span>${ICON[r.status]}</span><div><b>${esc(r.name)}</b><small>${esc(r.detail)}</small></div></div>`).join("")}</div>`;
+  } finally { $("check").disabled = false; }
 }
 
 async function pollLog() {
@@ -272,14 +279,46 @@ async function pollLog() {
     res.lines.forEach(addLog);
     logNext = res.next;
     for (const id of ["start", "wifiOnly", "erase"]) $(id).disabled = res.busy;
+    if (wasBusy && !res.busy) pollDevices(true);  // job finished: refresh state
+    wasBusy = res.busy;
   } catch (e) { /* server stopped */ }
   setTimeout(pollLog, 700);
 }
 
-$("refresh").onclick = refresh;
-$("device").onchange = () => { loadInfo(); $("checkResults").innerHTML = ""; };
+async function init() {
+  const meta = await api("/api/meta");
+  fill($("language"), meta.languages.map(([n, c]) => [`${n} [${c}]`, c]), "uk");
+  regions = meta.regions;
+  fill($("region"), regions.map(([n, c]) => [`${n} [${c}]`, c]), "UA");
+  fill($("security"), meta.security, "Any");
+  await loadSettings(true);
+  pollLog();
+  await pollDevices(true);
+  setInterval(() => pollDevices(false), 3000);
+  document.querySelectorAll("input, select").forEach(el => el.addEventListener("change", rememberForm));
+}
+
+$("refresh").onclick = () => pollDevices(true);
+$("device").onchange = () => onDevice(false);
 $("check").onclick = runCheck;
+$("start").onclick = start;
+$("status").onclick = () => $("footer").classList.toggle("open");
+$("region").onchange = () => {
+  const r = regions.find(([, c]) => c === $("region").value);
+  if (r) $("timezone").value = r[2];
+};
+$("showPass").onchange = () => { $("password").type = $("showPass").checked ? "text" : "password"; };
 $("saved").onchange = pickNetwork;
+$("saveNet").onclick = async () => {
+  const ssid = $("ssid").value.trim();
+  if (!ssid) return alert("Введите имя сети.");
+  const f = form();
+  const res = await api("/api/network/save", f);
+  if (res.error) return alert(res.error);
+  await loadSettings(false);
+  $("saved").value = ssid;
+  addLog(`Сеть «${ssid}» сохранена`);
+};
 $("delNet").onclick = async () => {
   const ssid = $("saved").value;
   if (!ssid || !confirm(`Удалить сохранённую сеть «${ssid}» и её пароль?`)) return;
@@ -287,33 +326,23 @@ $("delNet").onclick = async () => {
   await api("/api/network/delete", { ssid });
   await loadSettings(false);
   pickNetwork();
+  addLog(`Сеть «${ssid}» удалена`);
 };
-$("region").onchange = () => {
-  const r = regions.find(([, c]) => c === $("region").value);
-  if (r) $("timezone").value = r[2];
-};
-$("showPass").onchange = () => { $("password").type = $("showPass").checked ? "text" : "password"; };
 $("loadLangs").onclick = async () => {
-  if (!serial()) return;
+  if (!needDevice()) return;
   addLog("Читаю языки с устройства…");
   const res = await api("/api/languages", { serial: $("device").value });
   if (res.error) return addLog("❌ " + res.error);
-  const cur = $("language").value;
-  fill($("language"), res.map(c => [c, c]), cur);
+  fill($("language"), res.map(c => [c, c]), $("language").value);
   addLog(`Загружено языков: ${res.length}`);
 };
-$("start").onclick = () => {
-  if (!serial()) return;
-  if ($("skip").checked && !confirm("Устройство будет переведено в контролируемый (supervised) режим, экраны настройки будут пропущены. Снять режим можно только стиранием iPhone. Продолжить?")) return;
-  job("/api/run", form());
-};
 $("wifiOnly").onclick = () => {
-  if (!serial()) return;
+  if (!needDevice()) return;
   if (!$("ssid").value) return alert("Введите имя сети.");
   job("/api/wifi", form());
 };
 $("erase").onclick = () => {
-  if (!serial()) return;
+  if (!needDevice()) return;
   if (!confirm("Стереть ВСЕ данные на устройстве? Это необратимо.")) return;
   job("/api/erase", { serial: $("device").value });
 };
