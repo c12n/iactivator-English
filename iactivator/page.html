@@ -26,6 +26,10 @@
   button:disabled { opacity:.5; cursor:default; }
   .actions { display:flex; gap:8px; flex-wrap:wrap; }
   .actions .spacer { flex:1; }
+  .info { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:8px 16px; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
+  .info div span { display:block; color:var(--muted); font-size:12px; }
+  .info div b { font-weight:600; }
+  .good { color:#1a7f37; } .warn { color:#b25e00; } .bad { color:var(--danger); }
   #log { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; min-height:160px; max-height:320px; overflow:auto; white-space:pre-wrap; font:12px ui-monospace, Menlo, Consolas, monospace; }
 </style>
 </head>
@@ -39,6 +43,7 @@
       <select id="device"><option value="">Поиск…</option></select>
       <button id="refresh">Обновить</button>
     </div>
+    <div id="info" class="info" hidden></div>
   </section>
 
   <section>
@@ -133,6 +138,40 @@ async function refresh() {
   }
   fill($("device"), res.map(d => [d.label, d.serial]));
   addLog(`Найдено устройств: ${res.length}`);
+  loadInfo();
+}
+
+async function loadInfo() {
+  const box = $("info");
+  const serial = $("device").value;
+  if (!serial) { box.hidden = true; return; }
+  box.hidden = false;
+  box.textContent = "Читаю данные устройства…";
+  const d = await api("/api/info", { serial });
+  if (d.error) { box.textContent = "Не удалось прочитать данные: " + d.error; return; }
+  const items = [
+    ["Модель", d.model], ["Прошивка (iOS)", d.ios && `${d.ios} (${d.build})`],
+    ["Модем", d.baseband || "—"], ["Серийный номер", d.serial], ["Активация", d.activation],
+  ];
+  const b = d.battery;
+  if (b) {
+    if (b.level != null) items.push(["Заряд", `${b.level}%${b.charging ? " ⚡" : ""}`]);
+    if (b.health != null) {
+      const cls = b.health >= 85 ? "good" : b.health >= 80 ? "warn" : "bad";
+      items.push(["Ёмкость батареи", `<span class="${cls}">${b.health}%</span>`]);
+    }
+    if (b.full_mah) items.push(["Ёмкость, мАч", `${b.full_mah} из ${b.design_mah || "?"}`]);
+    if (b.cycles != null) items.push(["Циклы зарядки", b.cycles]);
+    if (b.temperature != null) items.push(["Температура", `${b.temperature} °C`]);
+  } else {
+    items.push(["Батарея", "нет данных (разблокируйте iPhone)"]);
+  }
+  box.innerHTML = "";
+  for (const [k, v] of items) {
+    const el = document.createElement("div");
+    el.innerHTML = `<span>${k}</span><b>${v ?? "—"}</b>`;
+    box.appendChild(el);
+  }
 }
 
 function serial() {
@@ -166,6 +205,7 @@ async function pollLog() {
 }
 
 $("refresh").onclick = refresh;
+$("device").onchange = loadInfo;
 $("region").onchange = () => {
   const r = regions.find(([, c]) => c === $("region").value);
   if (r) $("timezone").value = r[2];

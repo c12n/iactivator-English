@@ -23,6 +23,7 @@ from pymobiledevice3.exceptions import (
     ProfileError,
 )
 from pymobiledevice3.lockdown import LockdownClient, create_using_usbmux
+from pymobiledevice3.services.diagnostics import DiagnosticsService
 from pymobiledevice3.services.mobile_activation import MobileActivationService
 from pymobiledevice3.services.mobile_config import MobileConfigService
 
@@ -149,6 +150,65 @@ async def get_supported_languages(serial: str) -> tuple[list[str], list[str]]:
         langs = await lockdown.get_value("com.apple.international", "SupportedLanguages") or []
         locales = await lockdown.get_value("com.apple.international", "SupportedLocales") or []
         return list(langs), list(locales)
+    finally:
+        await lockdown.close()
+
+
+def _battery_info(raw: dict) -> dict:
+    """Pick capacity numbers out of the IOPMPowerSource entry. Key names differ
+    between iOS versions, so several spellings are tried."""
+    data = raw.get("BatteryData") or {}
+
+    def first(*keys):
+        for k in keys:
+            for src in (raw, data):
+                if isinstance(src.get(k), (int, float)) and src.get(k) > 0:
+                    return src[k]
+        return None
+
+    design = first("DesignCapacity")
+    full = first("AppleRawMaxCapacity", "NominalChargeCapacity", "MaxCapacity")
+    if full is not None and full <= 100 and design and design > 100:
+        full = None  # MaxCapacity is a percentage on some versions, not mAh
+    result = {
+        "level": first("CurrentCapacity") if (first("CurrentCapacity") or 0) <= 100 else None,
+        "charging": bool(raw.get("IsCharging")),
+        "design_mah": design,
+        "full_mah": full,
+        "cycles": first("CycleCount"),
+        "health": round(full * 100 / design) if full and design else None,
+    }
+    temp = first("Temperature")
+    if temp:
+        result["temperature"] = round(temp / 100, 1)
+    return result
+
+
+async def get_device_details(serial: str) -> dict:
+    lockdown = await create_using_usbmux(serial=serial, autopair=True, pair_timeout=60)
+    try:
+        v = lockdown.all_values
+        info = {
+            "name": v.get("DeviceName"),
+            "model": v.get("ProductType"),
+            "ios": v.get("ProductVersion"),
+            "build": v.get("BuildVersion"),
+            "baseband": v.get("BasebandVersion"),
+            "serial": v.get("SerialNumber"),
+            "activation": v.get("ActivationState"),
+            "battery": None,
+        }
+        try:
+            async with DiagnosticsService(lockdown) as diag:
+                raw = await diag.get_battery()
+            if raw:
+                info["battery"] = _battery_info(raw)
+        except Exception:
+            # Diagnostics may refuse on locked or unactivated devices; fall back to the charge level.
+            level = await lockdown.get_value("com.apple.mobile.battery", "BatteryCurrentCapacity")
+            if level is not None:
+                info["battery"] = {"level": level}
+        return info
     finally:
         await lockdown.close()
 

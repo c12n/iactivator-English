@@ -163,6 +163,12 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 return self._send(200, {"error": str(e)})
 
+        if self.path == "/api/info":
+            try:
+                return self._send(200, STATE.run(core.get_device_details(serial)))
+            except Exception as e:
+                return self._send(200, {"error": str(e)})
+
         if self.path == "/api/run":
             opts = _options(d)
             job = lambda: _with_activator(serial, lambda a: a.run(opts))
