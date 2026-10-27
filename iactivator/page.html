@@ -80,7 +80,9 @@
         <label class="check"><input type="checkbox" id="h24" checked> 24 ч</label></div>
       <div class="row"><label class="check"><input type="checkbox" id="activate" checked> Активировать через серверы Apple</label></div>
       <div class="row"><label class="check"><input type="checkbox" id="skip" checked> <b>Пропустить все экраны настройки</b></label></div>
-      <div class="hint" style="margin-left:22px">Без нажатий на iPhone, Wi-Fi ставится сам. Работает на сброшенном iPhone до прохождения настройки; включает контролируемый режим (снимается стиранием).</div>
+      <div class="hint" style="margin-left:22px">Работает на сброшенном iPhone до прохождения настройки.</div>
+      <div class="row"><label class="check"><input type="checkbox" id="supervise"> Контролируемый режим</label></div>
+      <div class="hint" style="margin-left:22px">Wi-Fi ставится без нажатий, но в Настройках вверху будет надпись «iPhone под надзором и контролем …» (убирается только стиранием). Без него Wi-Fi нужно подтвердить: Настройки → «Профиль загружен» → Установить.</div>
       <div class="row"><span class="lbl">Организация</span><input type="text" id="org" value="iActivator"></div>
     </div>
 
@@ -218,7 +220,7 @@ async function loadSettings(applyLast) {
   if (l.language) $("language").value = l.language;
   if (l.region) $("region").value = l.region;
   if (l.timezone) $("timezone").value = l.timezone;
-  for (const [id, key] of [["h24","h24"], ["activate","activate"], ["skip","skip_setup"], ["auto","auto"]])
+  for (const [id, key] of [["h24","h24"], ["activate","activate"], ["skip","skip_setup"], ["supervise","supervise"], ["auto","auto"]])
     if (key in l) $(id).checked = l[key];
   if (l.organization) $("org").value = l.organization;
   if (l.ssid && networks.some(n => n.ssid === l.ssid)) { $("saved").value = l.ssid; await pickNetwork(); }
@@ -236,7 +238,7 @@ function form() {
     language: $("language").value, region: $("region").value, timezone: $("timezone").value, h24: $("h24").checked,
     ssid: $("ssid").value, password: $("password").value, security: $("security").value,
     hidden: $("hidden").checked, nomac: $("nomac").checked,
-    activate: $("activate").checked, skip_setup: $("skip").checked, organization: $("org").value, auto: $("auto").checked,
+    activate: $("activate").checked, skip_setup: $("skip").checked, supervise: $("supervise").checked, organization: $("org").value, auto: $("auto").checked,
   };
 }
 let saveTimer;

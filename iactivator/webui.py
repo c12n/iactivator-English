@@ -106,6 +106,7 @@ def _options(d: dict) -> core.SetupOptions:
         use_24h=bool(d.get("h24", True)),
         activate=bool(d.get("activate", True)),
         skip_setup=bool(d.get("skip_setup", True)),
+        supervise=bool(d.get("supervise", False)),
         organization=(d.get("organization") or "iActivator").strip(),
         wifi=_wifi(d),
     )

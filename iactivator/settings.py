@@ -65,7 +65,7 @@ def delete_network(ssid: str) -> None:
 
 def save_last(values: dict) -> None:
     """Remember non-secret form values (language, region, …) for the next launch."""
-    keep = ("language", "region", "timezone", "h24", "activate", "skip_setup", "organization", "ssid", "auto")
+    keep = ("language", "region", "timezone", "h24", "activate", "skip_setup", "supervise", "organization", "ssid", "auto")
     with _lock:
         data = load()
         data["last"] = {k: values[k] for k in keep if k in values}

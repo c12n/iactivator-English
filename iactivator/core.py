@@ -108,6 +108,9 @@ class SetupOptions:
     use_24h: bool = True
     activate: bool = True
     skip_setup: bool = True
+    # Supervision lets Wi-Fi install without taps, but iOS then shows "This iPhone is
+    # supervised and managed by <organization>" at the top of Settings until erased.
+    supervise: bool = False
     organization: str = "iActivator"
     wifi: Optional[WifiOptions] = None
     skip_panes: list = field(default_factory=lambda: list(SKIP_SETUP_PANES))
@@ -372,6 +375,8 @@ async def lock_checks(lockdown, own_cert: Optional[bytes] = None, check_activati
         results.append(_check("MDM (удалённое управление)", "bad",
                               f"Устройство в корпоративной программе (Apple Business Manager): {org or 'организация неизвестна'}. "
                               "Удалить может только владелец организации"))
+    elif not cc.get("IsSupervised") and cc.get("ConfigurationSource") == 2 and cc.get("SkipSetup"):
+        results.append(_check("MDM (удалённое управление)", "ok", "Не управляется (только пропуск экранов настройки)"))
     elif cc.get("IsSupervised") or org:
         results.append(_check("MDM (удалённое управление)", "warn",
                               f"Контролируемый режим: {org or 'неизвестная организация'} (снимается стиранием)"))
@@ -564,15 +569,14 @@ class Activator:
             await self.activate()
         await self.set_language_region(opts)
 
-        keybag = None
+        keybag = keybag_path(opts.organization) if opts.skip_setup and opts.supervise else None
         if opts.skip_setup:
-            keybag = keybag_path(opts.organization)
             await self.apply_cloud_configuration(opts, keybag)
         elif await self.setup_finished() is False:
             self.log("ℹ «Пропустить все экраны настройки» выключено — экраны на iPhone нужно пройти вручную.")
 
         if opts.wifi:
-            if keybag is not None and await self.setup_finished() is False:
+            if opts.skip_setup and await self.setup_finished() is False:
                 self.log("📱 Проведите вверх по экрану iPhone — он перейдёт на главный экран без настроек. "
                          "Wi-Fi установлю сразу после этого.")
                 if not await self.wait_setup_finished(timeout=600):
@@ -642,14 +646,18 @@ class Activator:
             except Exception as e:  # not writable on some iOS versions; not critical
                 self.log(f"  ⚠ не удалось установить {what}: {e}")
 
-    async def apply_cloud_configuration(self, opts: SetupOptions, keybag: Path) -> None:
-        cert = _cert_der(keybag)
+    async def apply_cloud_configuration(self, opts: SetupOptions, keybag: Optional[Path]) -> None:
+        cert = _cert_der(keybag) if keybag is not None else None
         async with MobileConfigService(self.lockdown) as mc:
             current = await mc.get_cloud_configuration() or {}
-            if current.get("IsSupervised") and cert in current.get("SupervisorHostCertificates", []):
+            if cert is not None and current.get("IsSupervised") and cert in current.get("SupervisorHostCertificates", []):
                 self.log("Конфигурация уже применена этим компьютером — пропускаю.")
                 return
-            self.log("Применяю конфигурацию: пропуск экранов настройки + контролируемый режим…")
+            if cert is None and current.get("ConfigurationSource") == 2 and current.get("SkipSetup"):
+                self.log("Пропуск экранов уже настроен — пропускаю.")
+                return
+            self.log("Применяю конфигурацию: пропуск экранов настройки" +
+                     (" + контролируемый режим…" if cert is not None else "…"))
             config = {
                 "AllowPairing": True,
                 "CloudConfigurationUIComplete": True,
@@ -658,13 +666,14 @@ class Activator:
                 "IsMDMUnremovable": False,
                 "IsMandatory": True,
                 "IsMultiUser": False,
-                "IsSupervised": True,
+                "IsSupervised": cert is not None,
                 "OrganizationMagic": str(uuid.uuid4()),
                 "OrganizationName": opts.organization,
                 "PostSetupProfileWasInstalled": True,
                 "SkipSetup": opts.skip_panes,
-                "SupervisorHostCertificates": [cert],
             }
+            if cert is not None:
+                config["SupervisorHostCertificates"] = [cert]
             try:
                 await mc.set_cloud_configuration(config)
             except CloudConfigurationAlreadyPresentError as e:
@@ -690,8 +699,8 @@ class Activator:
                         # the user has to confirm it once in Settings.
                         await mc.install_profile(profile)
                         self.log("  📱 На iPhone: Настройки → «Профиль загружен» (вверху) → Установить. "
-                                 "Чтобы Wi-Fi ставился без нажатий, включите «Пропустить экраны настройки» "
-                                 "до активации (на сброшенном iPhone).")
+                                 "Чтобы Wi-Fi ставился без нажатий, включите «Контролируемый режим» "
+                                 "(на сброшенном iPhone).")
                         return
                     await mc.install_profile_silent(keybag, profile)
                     # The radio is often left off after a skipped setup: the profile is
