@@ -545,13 +545,26 @@ class Activator:
         self.log(f"Устройство: {v.get('ProductType')} iOS {v.get('ProductVersion')}, "
                  f"состояние: {v.get('ActivationState')}")
 
+        # Order matters: once the iPhone gets online during setup it fetches its own
+        # (empty) cloud configuration from Apple, and iOS refuses to replace it after
+        # that. So the skip-setup configuration goes first — before activation if the
+        # device allows it, otherwise right after — and Wi-Fi is installed last.
+        keybag = keybag_path(opts.organization) if opts.skip_setup else None
+        applied = False
+        if keybag is not None and v.get("ActivationState") == "Unactivated":
+            try:
+                await self.apply_cloud_configuration(opts, keybag)
+                applied = True
+            except UserFacingError:
+                raise
+            except Exception:
+                await self.connect()  # not accepted before activation on this iOS; retry after
+
         if opts.activate:
             await self.activate()
         await self.set_language_region(opts)
 
-        keybag = None
-        if opts.skip_setup:
-            keybag = keybag_path(opts.organization)
+        if keybag is not None and not applied:
             await self.apply_cloud_configuration(opts, keybag)
 
         if opts.wifi:
@@ -622,9 +635,9 @@ class Activator:
                 await mc.set_cloud_configuration(config)
             except CloudConfigurationAlreadyPresentError as e:
                 raise UserFacingError(
-                    "На устройстве уже есть конфигурация от другой программы/компьютера "
-                    "(например, 3uTools или Apple Configurator). Сотрите iPhone "
-                    "(кнопка «Стереть устройство») и повторите."
+                    "iPhone уже получил свою конфигурацию настройки (он выходил в интернет во время "
+                    "настройки, или его настраивали 3uTools / Apple Configurator), и iOS не даёт её заменить. "
+                    "Нажмите «Стереть…», затем «Запустить» — после стирания экраны будут пропущены."
                 ) from e
         self.log("Экраны настройки будут пропущены.")
         await self.connect()
