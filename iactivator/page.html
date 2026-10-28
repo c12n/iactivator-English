@@ -9,8 +9,12 @@
   :root { --bg:#f5f5f7; --side:#ececf0; --card:#fff; --text:#1d1d1f; --muted:#86868b; --line:#e5e5ea; --field:#f2f2f5;
           --accent:#0071e3; --accent-soft:#0071e314; --danger:#e0262f; --good:#1f9d55; --warn:#c77700;
           --shadow:0 1px 2px #0000000a, 0 4px 16px #0000000a; }
+  /* Theme: "auto" follows the system; data-theme on <html> forces light or dark. */
+  :root[data-theme=dark] { color-scheme:dark; --bg:#161618; --side:#1e1e21; --card:#232326; --text:#f5f5f7; --muted:#98989d; --line:#323236; --field:#2c2c30;
+          --accent:#0a84ff; --accent-soft:#0a84ff22; --danger:#ff453a; --good:#30d158; --warn:#ff9f0a; --shadow:none; }
+  :root[data-theme=light] { color-scheme:light; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#161618; --side:#1e1e21; --card:#232326; --text:#f5f5f7; --muted:#98989d; --line:#323236; --field:#2c2c30;
+    :root:not([data-theme=light]) { color-scheme:dark; --bg:#161618; --side:#1e1e21; --card:#232326; --text:#f5f5f7; --muted:#98989d; --line:#323236; --field:#2c2c30;
             --accent:#0a84ff; --accent-soft:#0a84ff22; --danger:#ff453a; --good:#30d158; --warn:#ff9f0a; --shadow:none; }
   }
   * { box-sizing:border-box; }
@@ -108,8 +112,21 @@
   .ev { display:grid; grid-template-columns:130px 14px 150px 1fr; gap:8px; padding:4px 0; align-items:start; }
   .ev .st { margin-top:6px; } .ev time { color:var(--muted); font-size:12px; } .ev small { color:var(--muted); }
   tr.events td { background:var(--field); border-top:0; padding:8px 16px; }
-  @media (max-width: 860px) { .stats { grid-template-columns:1fr 1fr; } .ev { grid-template-columns:1fr; } }
-  #log { white-space:pre-wrap; font:11.5px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; max-height:calc(100vh - 170px); overflow:auto; margin:0; }
+  @media (max-width: 860px) { .stats { grid-template-columns:1fr 1fr; } .ev { grid-template-columns:1fr; } .le { grid-template-columns:56px 10px 1fr; } .le .sn { display:none; } }
+  #log { font:11.5px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; max-height:calc(100vh - 220px); overflow:auto; margin:0; }
+  .le { display:grid; grid-template-columns:62px 10px 104px 1fr; gap:8px; padding:2px 0; align-items:start; }
+  .le time, .le .sn { color:var(--muted); } .le .st { margin-top:5px; }
+  .le .tx { white-space:pre-wrap; word-break:break-word; }
+  .le.debug .tx { color:var(--muted); } .le.error .tx { color:var(--danger); } .le.warn .tx { color:var(--warn); }
+  .tools { display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
+  .tools input[type=text] { flex:1; min-width:140px; } .tools select { flex:none; width:auto; }
+
+  .seg { display:inline-flex; background:var(--field); border-radius:9px; padding:2px; gap:2px; }
+  .seg button { height:28px; background:transparent; border-radius:7px; }
+  .seg button.on { background:var(--card); box-shadow:var(--shadow); font-weight:600; }
+  .wallet { display:flex; gap:8px; align-items:center; padding:7px 0; border-top:1px solid var(--line); }
+  .wallet code { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; font:12px ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  .wallet b { width:110px; flex:none; }
 
   .about dl { display:grid; grid-template-columns:150px 1fr; gap:8px 12px; margin:0; }
   .about dt { color:var(--muted); } .about dd { margin:0; word-break:break-all; }
@@ -147,6 +164,12 @@
   <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
   <symbol id="logo" viewBox="0 0 84 84"><rect x=".5" y=".5" width="83" height="83" rx="20" fill="#F6F6F3" stroke="#E2E2DC"/><rect x="27" y="10" width="30" height="50" rx="8" fill="#2E3035"/><rect x="31" y="15" width="22" height="38" rx="4" fill="#F6F6F3"/><path d="M38 30l4-6v8h4l-4 8v-6z" fill="#2E3035"/><path d="M42 60v14" fill="none" stroke="#9AA3AD" stroke-width="4" stroke-linecap="round"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 15v4a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 15v4a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></symbol>
+  <symbol id="i-insta" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6" fill="currentColor"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.6 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/></symbol>
   <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></symbol>
 </svg>
 
@@ -161,6 +184,7 @@
     <a data-page="check"><svg><use href="#i-pulse"/></svg><span>Диагностика</span></a>
     <a data-page="history"><svg><use href="#i-clock"/></svg><span>История</span><span class="count" id="histCount"></span></a>
     <a data-page="log"><svg><use href="#i-list"/></svg><span>Журнал</span></a>
+    <a data-page="settings"><svg><use href="#i-gear"/></svg><span>Настройки</span></a>
     <a data-page="about"><svg><use href="#i-info"/></svg><span>О программе</span></a>
   </nav>
   <div class="conn" title="Состояние подключения"><i class="dot" id="connDot"></i><span id="connText">Нет устройства</span></div>
@@ -269,7 +293,47 @@
   <!-- ======== Журнал ======== -->
   <section class="page" id="p-log">
     <h1>Журнал</h1>
-    <div class="card"><pre id="log" class="empty"></pre></div>
+    <div class="card">
+      <div class="tools">
+        <select id="logLevel" title="Какие записи показывать">
+          <option value="main">Основное</option>
+          <option value="problems">Только ошибки и замечания</option>
+          <option value="debug">Подробно (с технической информацией)</option>
+        </select>
+        <input type="text" id="logSearch" placeholder="Поиск по тексту или серийному номеру">
+        <button class="icon" id="logCopy" title="Скопировать показанные записи"><svg><use href="#i-copy"/></svg></button>
+        <button id="logFolder" title="Журналы по дням хранятся 30 дней"><svg><use href="#i-folder"/></svg>Файлы журнала</button>
+      </div>
+      <div id="log"></div>
+      <div id="logEmpty" class="empty">Журнал пуст</div>
+    </div>
+  </section>
+
+  <!-- ======== Настройки ======== -->
+  <section class="page" id="p-settings">
+    <h1>Настройки</h1>
+    <div class="card">
+      <h2>Оформление</h2>
+      <div class="row"><span class="lbl">Тема</span>
+        <div class="seg" id="theme">
+          <button data-theme="auto">Как в системе</button><button data-theme="light">Светлая</button><button data-theme="dark">Тёмная</button>
+        </div></div>
+    </div>
+    <div class="card">
+      <h2>Перенос настроек</h2>
+      <p class="hint" style="margin-top:0">Сохраните настройки в файл и загрузите его на другом компьютере или после переустановки:
+        сети Wi-Fi, язык, регион, режимы и тему.</p>
+      <label class="sw"><input type="checkbox" id="expSecrets" checked><span class="t">Пароли Wi-Fi и ключ контролируемого режима
+        <small>Пароли в файле не зашифрованы — храните его как пароль</small></span></label>
+      <label class="sw"><input type="checkbox" id="expHistory"><span class="t">История устройств<small>Серийные номера, IMEI и все действия</small></span></label>
+      <div class="sep"></div>
+      <div class="row" style="gap:8px">
+        <button id="exportBtn"><svg><use href="#i-download"/></svg>Сохранить в файл…</button>
+        <button id="importBtn"><svg><use href="#i-upload"/></svg>Загрузить из файла…</button>
+        <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+      </div>
+      <div id="transferResult" class="hint"></div>
+    </div>
   </section>
 
   <!-- ======== О программе ======== -->
@@ -298,6 +362,14 @@
         <div class="sep"></div>
         <button id="openData"><svg><use href="#i-folder"/></svg>Открыть папку данных</button>
       </div>
+    </div>
+    <div class="card">
+      <h2>Автор и поддержка проекта</h2>
+      <div class="row" style="justify-content:space-between">
+        <span>Новости, вопросы и предложения — в Instagram</span>
+        <button id="insta"><svg><use href="#i-insta"/></svg>Instagram</button>
+      </div>
+      <div id="wallets"></div>
     </div>
     <p class="hint" style="margin-top:14px">Программа не обходит Блокировку активации: iPhone, привязанный к чужому Apple ID, нужно снять с аккаунта владельца.</p>
   </section>
@@ -329,12 +401,47 @@ function show(page) {
   if (page === "history") loadHistory();
   if (page === "log") $("log").scrollTop = $("log").scrollHeight;
 }
-function addLog(line) {
-  const el = $("log");
-  el.classList.remove("empty");
-  el.textContent += line + "\n";
-  el.scrollTop = el.scrollHeight;
-  $("status").textContent = line;
+
+// ---------- journal ----------
+// Entries come from the server ({time, level, serial, text}); the page's own messages go there too,
+// so they also land in the daily log file.
+const LOG_DOT = { ok:"ok", warn:"warn", error:"bad", info:"", debug:"" };
+let logEntries = [];
+function addLog(text, level) {
+  api("/api/journal", { text, level: level || "", serial: $("device").value }).catch(() => {});
+}
+function logVisible(e) {
+  const mode = $("logLevel").value;
+  if (mode === "problems" && e.level !== "warn" && e.level !== "error") return false;
+  if (mode === "main" && e.level === "debug") return false;
+  const q = $("logSearch").value.trim().toLowerCase();
+  return !q || e.text.toLowerCase().includes(q) || e.serial.toLowerCase().includes(q);
+}
+function logRow(e) {
+  return `<div class="le ${e.level}"><time>${esc(e.time)}</time>${dot(LOG_DOT[e.level])}<span class="sn">${e.serial ? esc(e.serial) : ""}</span><span class="tx">${esc(e.text)}</span></div>`;
+}
+function renderLog(fresh) {
+  const box = $("log");
+  const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+  if (fresh) box.insertAdjacentHTML("beforeend", fresh.filter(logVisible).map(logRow).join(""));
+  else box.innerHTML = logEntries.filter(logVisible).slice(-3000).map(logRow).join("");
+  $("logEmpty").style.display = box.children.length ? "none" : "";
+  $("logEmpty").textContent = logEntries.length ? "Нет записей по этому фильтру" : "Журнал пуст";
+  if (atEnd || !fresh) box.scrollTop = box.scrollHeight;
+}
+$("logLevel").onchange = () => renderLog();
+$("logSearch").oninput = () => renderLog();
+$("logFolder").onclick = () => api("/api/logs/open", {});
+$("logCopy").onclick = () => copyText(logEntries.filter(logVisible)
+  .map(e => `${e.time}  ${e.serial || "-"}  ${e.text}`).join("\n"), "Записи журнала скопированы");
+function copyText(text, done) {
+  const ta = document.createElement("textarea");
+  ta.value = text; document.body.appendChild(ta); ta.select();
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch {}
+  ta.remove();
+  if (!ok && navigator.clipboard) navigator.clipboard.writeText(text).then(() => {}, () => {});
+  $("status").textContent = done;
 }
 async function api(path, body) {
   const opts = body ? { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) } : {};
@@ -358,7 +465,10 @@ async function pollDevices(full) {
   if (!res.length) {
     fill($("device"), [["Подключите iPhone кабелем…", ""]]);
     setConn("");
-    if (cur) { $("info").innerHTML = ""; $("badges").innerHTML = ""; info = null; addLog("iPhone отключён"); }
+    if (cur) {
+      $("info").innerHTML = ""; $("badges").innerHTML = ""; info = null;
+      api("/api/journal", { text: "iPhone отключён", serial: cur }).catch(() => {});
+    }
     return;
   }
   fill($("device"), res.map(d => [d.label, d.serial]), fresh ? fresh.serial : cur);
@@ -370,15 +480,15 @@ async function pollDevices(full) {
 async function onDevice(isNew) {
   const serial = $("device").value;
   if (!serial) return;
-  if (isNew) addLog("Подключено устройство, читаю данные…");
+  if (isNew) addLog("Подключено устройство, читаю данные…", "debug");
   $("checkResults").className = "empty";
   $("checkResults").textContent = "Нажмите «Проверить».";
   await loadInfo(isNew);
   const locks = await loadLocks(isNew);
   loadHistory();
-  if (isNew) addLog("Данные устройства прочитаны");
+  if (isNew) addLog("Данные устройства прочитаны", "debug");
   if (isNew && $("auto").checked && info && info.activation === "Unactivated") {
-    if (locks.some(r => r.status === "bad")) addLog("⛔ Авто-режим остановлен: устройство заблокировано");
+    if (locks.some(r => r.status === "bad")) addLog("⛔ Авто-режим остановлен: устройство заблокировано", "error");
     else { addLog("Авто-режим: запускаю активацию"); start(); }
   }
 }
@@ -427,6 +537,7 @@ function fillNets() {
 }
 async function loadSettings(applyLast) {
   const s = await api("/api/settings", {});
+  applyTheme(s.ui.theme);
   networks = s.networks;
   fillNets();
   if (!applyLast) return;
@@ -470,7 +581,7 @@ function needDevice() {
 }
 async function job(path, body) {
   const res = await api(path, body);
-  if (res.error) { addLog("❌ " + res.error); alert(res.error); }
+  if (res.error) { addLog("❌ " + res.error, "error"); alert(res.error); }
   else if (body.ssid) loadSettings(false).then(() => { $("saved").value = body.ssid.trim(); fillNets(); });
 }
 function start() { if (needDevice()) job("/api/run", form()); }
@@ -531,7 +642,7 @@ async function makeReport() {
   addLog("Готовлю PDF-отчёт: проверяю iPhone… (до минуты)");
   try {
     const res = await api("/api/report", { serial: $("device").value });
-    if (res.error) { addLog("❌ Отчёт: " + res.error); alert(res.error); }
+    if (res.error) alert(res.error);
     loadHistory();
   } finally { btns.forEach(b => b.disabled = false); }
 }
@@ -550,7 +661,13 @@ $("histBody").onclick = async e => {
 async function pollLog() {
   try {
     const res = await api("/api/log?since=" + logNext);
-    res.lines.forEach(addLog);
+    if (res.entries.length) {
+      logEntries.push(...res.entries);
+      if (logEntries.length > 5000) { logEntries = logEntries.slice(-4000); renderLog(); }
+      else renderLog(res.entries);
+      const last = res.entries.filter(e => e.level !== "debug").pop();
+      if (last) $("status").textContent = last.text;
+    }
     logNext = res.next;
     for (const id of ["start", "wifiOnly", "erase"]) $(id).disabled = res.busy;
     $("bar").classList.toggle("busy", res.busy);
@@ -558,6 +675,48 @@ async function pollLog() {
     wasBusy = res.busy;
   } catch (e) { /* server stopped */ }
   setTimeout(pollLog, 700);
+}
+
+// ---------- settings page ----------
+function applyTheme(t) {
+  if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+  else delete document.documentElement.dataset.theme;
+  document.querySelectorAll("#theme button").forEach(b => b.classList.toggle("on", b.dataset.theme === (t || "auto")));
+}
+document.querySelectorAll("#theme button").forEach(b => b.onclick = () => {
+  applyTheme(b.dataset.theme);
+  api("/api/settings/ui", { theme: b.dataset.theme });
+});
+$("exportBtn").onclick = async () => {
+  $("exportBtn").disabled = true;
+  try {
+    const res = await api("/api/settings/export", { secrets: $("expSecrets").checked, history: $("expHistory").checked });
+    $("transferResult").textContent = res.error ? "❌ " + res.error : res.path ? "Сохранено: " + res.path : "";
+  } finally { $("exportBtn").disabled = false; }
+};
+$("importBtn").onclick = () => { $("importFile").value = ""; $("importFile").click(); };
+$("importFile").onchange = async () => {
+  const f = $("importFile").files[0];
+  if (!f) return;
+  let data;
+  try { data = JSON.parse(await f.text()); } catch { return alert("Файл не читается: это не файл настроек iActivator."); }
+  const res = await api("/api/settings/import", { data, name: f.name });
+  if (res.error) { $("transferResult").textContent = "❌ " + res.error; return alert(res.error); }
+  $("transferResult").textContent = "Загружено: " + res.done.join(", ");
+  await loadSettings(true);
+  loadHistory();
+};
+
+// ---------- support ----------
+function showSupport(a) {
+  $("insta").onclick = () => api("/api/open-url", { url: a.instagram });
+  $("wallets").innerHTML = a.wallets.length ? `<p class="hint">Поддержать проект криптовалютой:</p>` + a.wallets.map(([name, addr], i) =>
+    `<div class="wallet"><b>${esc(name)}</b><code title="${esc(addr)}">${esc(addr)}</code>
+     <button class="icon" data-wallet="${i}" title="Скопировать адрес"><svg><use href="#i-copy"/></svg></button></div>`).join("") : "";
+  $("wallets").onclick = e => {
+    const b = e.target.closest("[data-wallet]");
+    if (b) copyText(a.wallets[b.dataset.wallet][1], `Адрес ${a.wallets[b.dataset.wallet][0]} скопирован`);
+  };
 }
 
 async function init() {
@@ -572,10 +731,8 @@ async function init() {
   $("aboutInfo").innerHTML = [["Версия", a.version], ["Система", a.system], ["Python", a.python],
     ["pymobiledevice3", a.pymobiledevice3], ["Папка данных", a.data_dir]]
     .map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("");
-  $("log").textContent = "Журнал пуст";
-  $("log").classList.add("empty");
+  showSupport(a);
   await loadSettings(true);
-  $("log").textContent = "";
   pollLog();
   loadHistory();
   await pollDevices(true);
@@ -606,7 +763,6 @@ $("saveNet").onclick = async () => {
   await loadSettings(false);
   $("saved").value = ssid;
   fillNets();
-  addLog(`Сеть «${ssid}» сохранена`);
 };
 $("delNet").onclick = async () => {
   const ssid = $("saved").value;
@@ -615,13 +771,12 @@ $("delNet").onclick = async () => {
   await api("/api/network/delete", { ssid });
   await loadSettings(false);
   pickNetwork();
-  addLog(`Сеть «${ssid}» удалена`);
 };
 $("loadLangs").onclick = async () => {
   if (!needDevice()) return;
   addLog("Читаю языки с устройства…");
   const res = await api("/api/languages", { serial: $("device").value });
-  if (res.error) return addLog("❌ " + res.error);
+  if (res.error) return;
   fill($("language"), res.map(c => [c, c]), $("language").value);
   addLog(`Загружено языков: ${res.length}`);
 };

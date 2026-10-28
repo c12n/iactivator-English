@@ -115,3 +115,28 @@ def delete(serial: str) -> None:
         data = _load()
         data.pop(serial, None)
         _save(data)
+
+
+def export() -> dict:
+    with _lock:
+        return _load()
+
+
+def merge(other: dict) -> int:
+    """Add devices and events from another computer's history; returns how many devices it had."""
+    with _lock:
+        data = _load()
+        for serial, d in other.items():
+            if not isinstance(d, dict) or not d.get("events") and not d.get("model"):
+                continue
+            mine = data.setdefault(serial, {k: v for k, v in d.items() if k != "events"} | {"events": []})
+            seen = {(e["time"], e["action"]) for e in mine["events"]}
+            mine["events"] += [e for e in d.get("events", []) if (e.get("time"), e.get("action")) not in seen]
+            mine["events"].sort(key=lambda e: e["time"])
+            for k, v in d.items():
+                if k != "events" and v and not mine.get(k):
+                    mine[k] = v
+            if d.get("last_seen", "") > mine.get("last_seen", ""):
+                mine["last_seen"] = d["last_seen"]
+        _save(data)
+    return len(other)
