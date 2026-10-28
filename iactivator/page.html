@@ -146,6 +146,7 @@
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
   <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
   <symbol id="logo" viewBox="0 0 84 84"><rect x=".5" y=".5" width="83" height="83" rx="20" fill="#F6F6F3" stroke="#E2E2DC"/><rect x="27" y="10" width="30" height="50" rx="8" fill="#2E3035"/><rect x="31" y="15" width="22" height="38" rx="4" fill="#F6F6F3"/><path d="M38 30l4-6v8h4l-4 8v-6z" fill="#2E3035"/><path d="M42 60v14" fill="none" stroke="#9AA3AD" stroke-width="4" stroke-linecap="round"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
   <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></symbol>
 </svg>
 
@@ -174,6 +175,7 @@
         <div class="phone"><svg><use href="#i-phone"/></svg></div>
         <select id="device"><option value="">Подключите iPhone кабелем…</option></select>
         <button class="icon" id="refresh" title="Обновить"><svg><use href="#i-refresh"/></svg></button>
+        <button class="report-btn" title="Проверить iPhone и сохранить PDF-отчёт с датой и временем"><svg><use href="#i-file"/></svg>PDF-отчёт</button>
       </div>
       <div id="info" class="info"></div>
       <div id="badges" class="badges"></div>
@@ -228,7 +230,8 @@
   <section class="page" id="p-check">
     <h1>Диагностика</h1>
     <div class="card">
-      <h2><span class="sp">Проверка на неисправности</span><button id="check"><svg><use href="#i-pulse"/></svg>Проверить</button></h2>
+      <h2><span class="sp">Проверка на неисправности</span><button id="check"><svg><use href="#i-pulse"/></svg>Проверить</button>
+        <button class="report-btn" title="Проверить iPhone и сохранить PDF-отчёт с датой и временем"><svg><use href="#i-file"/></svg>PDF-отчёт</button></h2>
       <div id="checkResults" class="empty">Батарея, зарядка, Wi-Fi, Bluetooth, модем, память, журналы сбоев за 30 дней, Локатор и MDM. iPhone должен быть разблокирован.</div>
     </div>
     <div class="card">
@@ -253,6 +256,7 @@
       <div class="row" style="margin-top:0">
         <input type="text" id="histSearch" placeholder="Поиск по серийному номеру, IMEI или модели">
         <button id="histOpen" title="Файл со всей историей — открывается в Excel"><svg><use href="#i-folder"/></svg>Открыть файл</button>
+        <button id="reportsOpen" title="Папка с PDF-отчётами"><svg><use href="#i-file"/></svg>Отчёты</button>
       </div>
       <table>
         <thead><tr><th>Модель</th><th>Серийный №</th><th>IMEI</th><th>Последнее действие</th></tr></thead>
@@ -387,7 +391,7 @@ async function loadInfo(record) {
   info = d;
   const act = d.activation === "Activated" ? '<span class="good">Активирован</span>'
             : d.activation === "Unactivated" ? '<span class="warn">Не активирован</span>' : esc(d.activation);
-  const items = [["Модель", esc(d.model)], ["iOS", esc(d.ios && `${d.ios} (${d.build})`)], ["Серийный №", esc(d.serial)],
+  const items = [["Модель", esc(d.model_name + (d.capacity ? ", " + d.capacity : ""))], ["iOS", esc(d.ios && `${d.ios} (${d.build})`)], ["Серийный №", esc(d.serial)],
                  ["IMEI", esc(d.imei)], ["Активация", act]];
   if (d.imei2) items.splice(4, 0, ["IMEI 2", esc(d.imei2)]);
   const b = d.battery;
@@ -507,7 +511,7 @@ function renderHistory() {
   $("histBody").innerHTML = list.map(d => {
     const last = d.events[d.events.length - 1];
     const row = `<tr class="dev-row" data-serial="${esc(d.serial)}">
-      <td><b>${esc(d.model)}</b><br><small class="empty">iOS ${esc(d.ios)}${d.battery != null ? " · батарея " + d.battery + "%" : ""}</small></td>
+      <td><b>${esc(d.model_name || d.model)}</b>${d.capacity ? " · " + esc(d.capacity) : ""}<br><small class="empty">iOS ${esc(d.ios)}${d.battery != null ? " · батарея " + d.battery + "%" : ""}</small></td>
       <td class="mono">${esc(d.serial)}</td>
       <td class="mono">${esc(d.imei)}${d.imei2 ? "<br>" + esc(d.imei2) : ""}</td>
       <td>${last ? `<div style="display:flex;gap:8px">${dot(RES[last.result])}<div><b>${esc(last.action)}</b><br><small class="empty">${esc(last.time)} · событий: ${d.events.length}</small></div></div>` : "—"}</td></tr>`;
@@ -519,6 +523,19 @@ function renderHistory() {
 }
 $("histSearch").oninput = renderHistory;
 $("histOpen").onclick = () => api("/api/history/open", {});
+$("reportsOpen").onclick = () => api("/api/reports/open", {});
+async function makeReport() {
+  if (!needDevice()) return;
+  const btns = document.querySelectorAll(".report-btn");
+  btns.forEach(b => b.disabled = true);
+  addLog("Готовлю PDF-отчёт: проверяю iPhone… (до минуты)");
+  try {
+    const res = await api("/api/report", { serial: $("device").value });
+    if (res.error) { addLog("❌ Отчёт: " + res.error); alert(res.error); }
+    loadHistory();
+  } finally { btns.forEach(b => b.disabled = false); }
+}
+document.querySelectorAll(".report-btn").forEach(b => b.onclick = makeReport);
 $("histBody").onclick = async e => {
   const del = e.target.closest("[data-del]");
   if (del) {

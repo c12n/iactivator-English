@@ -43,11 +43,11 @@ def _write_csv(data: dict) -> None:
     try:
         with open(csv_path(), "w", newline="", encoding="utf-8-sig") as f:
             w = csv.writer(f, delimiter=";")
-            w.writerow(["Дата и время", "Серийный №", "IMEI", "IMEI 2", "Модель", "iOS", "Действие", "Результат", "Подробности"])
+            w.writerow(["Дата и время", "Серийный №", "IMEI", "IMEI 2", "Модель", "Память", "iOS", "Действие", "Результат", "Подробности"])
             rows = [(e, d) for d in data.values() for e in d.get("events", [])]
             for e, d in sorted(rows, key=lambda r: r[0]["time"]):
-                w.writerow([e["time"], d["serial"], d.get("imei") or "", d.get("imei2") or "", d.get("model") or "",
-                            d.get("ios") or "", e["action"], RESULT.get(e["result"], e["result"]), e.get("detail", "")])
+                w.writerow([e["time"], d["serial"], d.get("imei") or "", d.get("imei2") or "", d.get("model_name") or d.get("model") or "",
+                            d.get("capacity") or "", d.get("ios") or "", e["action"], RESULT.get(e["result"], e["result"]), e.get("detail", "")])
     except OSError:
         pass  # the file is open in Excel; it will be rewritten on the next change
 
@@ -68,7 +68,7 @@ def update_device(info: dict) -> None:
     with _lock:
         data = _load()
         d = _entry(data, serial)
-        for k in ("imei", "imei2", "model", "ios", "name"):
+        for k in ("imei", "imei2", "model", "model_name", "capacity", "ios", "name"):
             if info.get(k):
                 d[k] = info[k]
         b = info.get("battery") or {}

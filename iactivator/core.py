@@ -18,6 +18,7 @@ from cryptography import x509
 from cryptography.hazmat.primitives.serialization import Encoding
 from pymobiledevice3 import usbmux
 from pymobiledevice3.ca import create_keybag_file
+
 from pymobiledevice3.exceptions import (
     CloudConfigurationAlreadyPresentError,
     MobileActivationException,
@@ -32,6 +33,8 @@ from pymobiledevice3.services.mobile_activation import (
     MobileActivationService,
 )
 from pymobiledevice3.services.mobile_config import MobileConfigService
+
+from .models import capacity_label, model_name
 
 Log = Callable[[str], None]
 
@@ -125,7 +128,11 @@ class DeviceInfo:
     activation_state: str
 
     def label(self) -> str:
-        return f"{self.name} ({self.product_type}, iOS {self.ios}) — {self.activation_state} — {self.serial}"
+        state = ACTIVATION_RU.get(self.activation_state, self.activation_state)
+        return f"{model_name(self.product_type)} · iOS {self.ios} · {state} · {self.serial}"
+
+
+ACTIVATION_RU = {"Activated": "активирован", "Unactivated": "не активирован"}
 
 
 class UserFacingError(Exception):
@@ -217,6 +224,8 @@ async def get_device_details(serial: str) -> dict:
         info = {
             "name": v.get("DeviceName"),
             "model": v.get("ProductType"),
+            "model_name": model_name(v.get("ProductType")),
+            "capacity": None,
             "ios": v.get("ProductVersion"),
             "build": v.get("BuildVersion"),
             "baseband": v.get("BasebandVersion"),
@@ -226,6 +235,10 @@ async def get_device_details(serial: str) -> dict:
             "activation": v.get("ActivationState"),
             "battery": None,
         }
+        try:
+            info["capacity"] = capacity_label(await lockdown.get_value("com.apple.disk_usage", "TotalDiskCapacity"))
+        except Exception:
+            pass
         try:
             async with DiagnosticsService(lockdown) as diag:
                 raw = await diag.get_battery()

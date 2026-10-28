@@ -2,3 +2,4 @@ pymobiledevice3
 pywebview
 keyring
 pyinstaller
+fpdf2

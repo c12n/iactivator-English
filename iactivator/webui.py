@@ -16,7 +16,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import __version__, core, history, settings
+from . import __version__, core, history, report, settings
 
 LANGUAGES = [
     ("Украинский", "uk"), ("Русский", "ru"), ("Английский (США)", "en"), ("Английский (Великобритания)", "en-GB"),
@@ -224,6 +224,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/history/open":
             _open_folder(str(history.csv_path() if history.csv_path().exists() else core.app_data_dir()))
             return self._send(200, {"ok": True})
+        if self.path == "/api/reports/open":
+            _open_folder(str(report.reports_dir()))
+            return self._send(200, {"ok": True})
         if self.path == "/api/history/delete":
             history.delete(d.get("serial", ""))
             return self._send(200, {"ok": True})
@@ -250,6 +253,20 @@ class Handler(BaseHTTPRequestHandler):
                 res = STATE.run(core.run_health_check(serial, check_activation=not STATE.busy))
                 _record_checks(serial, "Диагностика", res)
                 return self._send(200, res)
+            except Exception as e:
+                return self._send(200, {"error": core.short_error(e)})
+
+        if self.path == "/api/report":
+            try:
+                info = STATE.run(core.get_device_details(serial))
+                history.update_device(info)
+                results = STATE.run(core.run_health_check(serial, check_activation=not STATE.busy))
+                _record_checks(serial, "Диагностика", results)
+                path = report.build_pdf(info, results)
+                history.add_event(serial, "PDF-отчёт", "info", path.name)
+                STATE.log(f"📄 Отчёт сохранён: {path}")
+                report.open_file(path)
+                return self._send(200, {"path": str(path)})
             except Exception as e:
                 return self._send(200, {"error": core.short_error(e)})
 
