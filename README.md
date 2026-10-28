@@ -24,7 +24,7 @@ iPhone с включённой Блокировкой активации (iCloud
 Интерфейс открывается в отдельном окне программы (на Mac через WebKit, на Windows через Edge WebView2).
 
 - **Mac:** `dist/iActivator.app`. Её можно перенести в «Программы». Собирается командой `./build_mac.sh`.
-- **Windows:** `iActivator.exe`. Собирается на компьютере с Windows двойным щелчком по `build_windows.bat` (нужен Python с python.org). Другой способ: загрузить папку в GitHub и на вкладке Actions запустить workflow **build**. Тогда GitHub соберёт и `.exe`, и Mac‑версию.
+- **Windows:** `iActivator.exe`. Собирается на компьютере с Windows двойным щелчком по `build_windows.bat` (нужен Python с python.org). Другой способ: загрузить папку в GitHub и на вкладке Actions запустить workflow **build**. Тогда GitHub соберёт `.exe` (Mac‑версия собирается только на Mac через `./build_mac.sh`).
 - На Windows для работы с iPhone нужен «Apple Devices» из Microsoft Store или iTunes.
 
 ## Важно

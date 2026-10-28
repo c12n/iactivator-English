@@ -1,5 +1,5 @@
-# Builds iActivator for Windows and macOS on GitHub's machines.
-# Run it from the repository's Actions tab ("Run workflow"); the results appear as artifacts.
+# Builds iActivator for Windows on GitHub's machines (the Mac version is built locally with build_mac.sh).
+# Run it from the repository's Actions tab ("Run workflow"); the result appears as an artifact.
 name: build
 on:
   workflow_dispatch:
@@ -8,27 +8,16 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        os: [windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: python -m pip install -r requirements.txt
-      - name: Build (Windows)
-        if: runner.os == 'Windows'
+      - name: Build
         run: pyinstaller --noconfirm --onefile --windowed --name iActivator --icon assets/icon.ico --collect-all pymobiledevice3 --collect-all webview --collect-submodules keyring --collect-data fpdf --add-data "iactivator/page.html;iactivator" main.py
-      - name: Build (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          pyinstaller --noconfirm --windowed --name iActivator --icon assets/icon.icns --collect-all pymobiledevice3 --collect-all webview --collect-submodules keyring --collect-data fpdf --add-data "iactivator/page.html:iactivator" main.py
-          cd dist && zip -qry iActivator-mac.zip iActivator.app
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
-          name: iActivator-${{ runner.os }}
-          path: |
-            dist/iActivator.exe
-            dist/iActivator-mac.zip
+          name: iActivator-Windows
+          path: dist/iActivator.exe
