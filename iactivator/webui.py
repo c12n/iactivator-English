@@ -43,7 +43,7 @@ ACTIVATION = {"Activated": "активирован", "Unactivated": "не акт
 
 # Shown on the About page. Wallets: (coin and network, address).
 INSTAGRAM = "https://www.instagram.com/perminov.george"
-WALLETS: list[tuple[str, str]] = []
+WALLETS: list[tuple[str, str]] = [("USDT (TRC20)", "TQKtZpsdz7pm9cuXWPE3ZQEboPHva4Uuas")]
 
 PAGE = (Path(__file__).parent / "page.html").read_text(encoding="utf-8")
 
