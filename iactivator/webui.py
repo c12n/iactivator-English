@@ -265,6 +265,8 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/logs/open":
             _open_folder(str(applog.logs_dir()))
             return self._send(200, {"ok": True})
+        if self.path == "/api/logs/export":
+            return self._send(200, _export_logs(bool(d.get("history", True))))
         if self.path == "/api/open-url":
             url = d.get("url", "")
             if url == INSTAGRAM:
@@ -409,6 +411,43 @@ def _export(secrets: bool, with_history: bool) -> dict:
     STATE.log(f"  Сети Wi-Fi: {len(data['networks'])}" + (", с паролями" if secrets else ", без паролей")
               + (", ключ контролируемого режима" if "supervision_keybag" in data else "")
               + (f", история: устройств {len(data['history'])}" if "history" in data else ""))
+    if WINDOW is None:
+        _open_folder(str(path.parent))
+    return {"path": str(path)}
+
+
+def _export_logs(with_history: bool) -> dict:
+    """Bundle the daily logs (and optionally the device history) into one text file
+    that can be sent for support/diagnosis."""
+    path = _save_path(f"iActivator-журнал-{time.strftime('%Y-%m-%d_%H%M')}.txt")
+    if path is None:
+        return {"cancelled": True}
+    a = _about()
+    parts = [
+        "=== iActivator — журнал для диагностики ===",
+        f"Создан: {time.strftime('%Y-%m-%d %H:%M:%S')}",
+        f"Версия: {a['version']}   Система: {a['system']}   Python: {a['python']}   pymobiledevice3: {a['pymobiledevice3']}",
+        "",
+    ]
+    logs = sorted(applog.logs_dir().glob("*.log"))
+    if logs:
+        parts.append(f"=== ЗАПИСИ ЖУРНАЛА (файлов: {len(logs)}) ===")
+        for p in logs:
+            try:
+                parts.append(f"\n----- {p.name} -----\n" + p.read_text(encoding="utf-8").rstrip())
+            except OSError as e:
+                parts.append(f"\n----- {p.name} ----- (не удалось прочитать: {e})")
+    else:
+        parts.append("=== ЗАПИСЕЙ ЖУРНАЛА ПОКА НЕТ ===")
+    if with_history:
+        parts.append("\n\n=== ИСТОРИЯ УСТРОЙСТВ (JSON) ===")
+        parts.append(json.dumps(history.export(), ensure_ascii=False, indent=1))
+    try:
+        path.write_text("\n".join(parts) + "\n", encoding="utf-8")
+    except OSError as e:
+        STATE.log(f"❌ Не удалось сохранить журнал: {e}")
+        return {"error": f"Не удалось сохранить файл: {e}"}
+    STATE.log(f"✅ Журнал сохранён в файл: {path}")
     if WINDOW is None:
         _open_folder(str(path.parent))
     return {"path": str(path)}

@@ -222,6 +222,7 @@ async def get_device_details(serial: str) -> dict:
     try:
         v = lockdown.all_values
         info = {
+            "conn_id": serial,  # usbmux identifier (UDID): the stable key used everywhere in the UI
             "name": v.get("DeviceName"),
             "model": v.get("ProductType"),
             "model_name": model_name(v.get("ProductType")),

@@ -26,9 +26,50 @@ def csv_path():
 
 def _load() -> dict:
     try:
-        return json.loads(json_path().read_text(encoding="utf-8"))
+        return _migrate(json.loads(json_path().read_text(encoding="utf-8")))
     except (OSError, ValueError):
         return {}
+
+
+def _is_udid(s: str) -> bool:
+    """A connection identifier (UDID/ECID), not a human serial number like 'L4VKQY7W10'."""
+    return bool(s) and (len(s) >= 20 or "-" in s or "~" in s)
+
+
+def _window(d: dict) -> tuple[str, str]:
+    times = [e["time"] for e in d.get("events", []) if e.get("time")]
+    times += [t for t in (d.get("first_seen"), d.get("last_seen")) if t]
+    return (min(times), max(times)) if times else ("", "")
+
+
+def _migrate(data: dict) -> dict:
+    """Older versions stored one physical phone under two keys — its connection id
+    (holding the events) and its serial number (holding the model, IMEI, iOS). Give
+    every record an explicit id and glue such split pairs back into one row."""
+    for key, d in data.items():
+        d.setdefault("id", key)
+    # info-only record (serial key, has model, no events) -> merge into the overlapping
+    # events-only record (connection-id key, has events, no model).
+    info_only = [d for d in data.values()
+                 if (d.get("model_name") or d.get("model")) and not d.get("events") and not _is_udid(d["id"])]
+    event_only = [d for d in data.values()
+                  if d.get("events") and not (d.get("model_name") or d.get("model")) and _is_udid(d["id"])]
+    drop = []
+    for b in info_only:
+        bs, be = _window(b)
+        hits = [a for a in event_only if (aw := _window(a)) and aw[0] <= be and bs <= aw[1]]
+        if len(hits) != 1:
+            continue  # ambiguous: leave both records untouched
+        a = hits[0]
+        a["serial"] = b.get("serial") or b["id"]  # show the human serial number
+        for k, v in b.items():
+            if k not in ("id", "serial", "events") and v and not a.get(k):
+                a[k] = v
+        drop.append(b["id"])
+        event_only.remove(a)
+    for key in drop:
+        data.pop(key, None)
+    return data
 
 
 def _save(data: dict) -> None:
@@ -46,7 +87,7 @@ def _write_csv(data: dict) -> None:
             w.writerow(["Дата и время", "Серийный №", "IMEI", "IMEI 2", "Модель", "Память", "iOS", "Действие", "Результат", "Подробности"])
             rows = [(e, d) for d in data.values() for e in d.get("events", [])]
             for e, d in sorted(rows, key=lambda r: r[0]["time"]):
-                w.writerow([e["time"], d["serial"], d.get("imei") or "", d.get("imei2") or "", d.get("model_name") or d.get("model") or "",
+                w.writerow([e["time"], d.get("serial") or d.get("id") or "", d.get("imei") or "", d.get("imei2") or "", d.get("model_name") or d.get("model") or "",
                             d.get("capacity") or "", d.get("ios") or "", e["action"], RESULT.get(e["result"], e["result"]), e.get("detail", "")])
     except OSError:
         pass  # the file is open in Excel; it will be rewritten on the next change
@@ -56,18 +97,22 @@ def _now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
-def _entry(data: dict, serial: str) -> dict:
-    return data.setdefault(serial, {"serial": serial, "first_seen": _now(), "events": []})
+def _entry(data: dict, device_id: str) -> dict:
+    # Keyed by the connection id (UDID) so events and device facts land in one row;
+    # "serial" holds the human serial number for display and stays empty until it is read.
+    return data.setdefault(device_id, {"id": device_id, "serial": "", "first_seen": _now(), "events": []})
 
 
 def update_device(info: dict) -> None:
     """Store the latest known facts about a device (model, IMEI, battery…)."""
-    serial = info.get("serial")
-    if not serial:
+    device_id = info.get("conn_id") or info.get("serial")
+    if not device_id:
         return
     with _lock:
         data = _load()
-        d = _entry(data, serial)
+        d = _entry(data, device_id)
+        if info.get("serial"):
+            d["serial"] = info["serial"]
         for k in ("imei", "imei2", "model", "model_name", "capacity", "ios", "name"):
             if info.get(k):
                 d[k] = info[k]

@@ -303,6 +303,7 @@
         <input type="text" id="logSearch" placeholder="Поиск по тексту или серийному номеру">
         <button class="icon" id="logCopy" title="Скопировать показанные записи"><svg><use href="#i-copy"/></svg></button>
         <button id="logFolder" title="Журналы по дням хранятся 30 дней"><svg><use href="#i-folder"/></svg>Файлы журнала</button>
+        <button id="logExport" title="Собрать журнал (и историю) в один файл, чтобы отправить для проверки"><svg><use href="#i-download"/></svg>Выгрузить в файл</button>
       </div>
       <div id="log"></div>
       <div id="logEmpty" class="empty">Журнал пуст</div>
@@ -432,6 +433,15 @@ function renderLog(fresh) {
 $("logLevel").onchange = () => renderLog();
 $("logSearch").oninput = () => renderLog();
 $("logFolder").onclick = () => api("/api/logs/open", {});
+$("logExport").onclick = async () => {
+  const b = $("logExport");
+  b.disabled = true;
+  try {
+    const res = await api("/api/logs/export", { history: true });
+    if (res.error) alert(res.error);
+    else if (res.path) addLog("✅ Журнал выгружен в файл: " + res.path);
+  } finally { b.disabled = false; }
+};
 $("logCopy").onclick = () => copyText(logEntries.filter(logVisible)
   .map(e => `${e.time}  ${e.serial || "-"}  ${e.text}`).join("\n"), "Записи журнала скопированы");
 function copyText(text, done) {
@@ -616,20 +626,21 @@ async function loadHistory() {
 }
 function renderHistory() {
   const q = $("histSearch").value.trim().toLowerCase();
-  const list = hist.devices.filter(d => !q || [d.serial, d.imei, d.imei2, d.model, d.name].some(v => v && v.toLowerCase().includes(q)));
+  const list = hist.devices.filter(d => !q || [d.serial, d.id, d.imei, d.imei2, d.model, d.name].some(v => v && v.toLowerCase().includes(q)));
   $("histEmpty").style.display = list.length ? "none" : "";
   $("histEmpty").textContent = hist.devices.length ? "Ничего не найдено" : "Пока пусто — устройства появятся здесь после подключения.";
   $("histBody").innerHTML = list.map(d => {
+    const key = d.id || d.serial;
     const last = d.events[d.events.length - 1];
-    const row = `<tr class="dev-row" data-serial="${esc(d.serial)}">
-      <td><b>${esc(d.model_name || d.model)}</b>${d.capacity ? " · " + esc(d.capacity) : ""}<br><small class="empty">iOS ${esc(d.ios)}${d.battery != null ? " · батарея " + d.battery + "%" : ""}</small></td>
-      <td class="mono">${esc(d.serial)}</td>
+    const row = `<tr class="dev-row" data-key="${esc(key)}">
+      <td><b>${esc(d.model_name || d.model || "—")}</b>${d.capacity ? " · " + esc(d.capacity) : ""}<br><small class="empty">iOS ${esc(d.ios || "—")}${d.battery != null ? " · батарея " + d.battery + "%" : ""}</small></td>
+      <td class="mono">${esc(d.serial || d.id)}</td>
       <td class="mono">${esc(d.imei)}${d.imei2 ? "<br>" + esc(d.imei2) : ""}</td>
       <td>${last ? `<div style="display:flex;gap:8px">${dot(RES[last.result])}<div><b>${esc(last.action)}</b><br><small class="empty">${esc(last.time)} · событий: ${d.events.length}</small></div></div>` : "—"}</td></tr>`;
-    if (openRow !== d.serial) return row;
+    if (openRow !== key) return row;
     const evs = [...d.events].reverse().map(e => `<div class="ev"><time>${esc(e.time)}</time>${dot(RES[e.result])}<b>${esc(e.action)}</b><small>${esc(e.detail || "")}</small></div>`).join("");
     return row + `<tr class="events"><td colspan="4">${evs || '<span class="empty">Событий нет</span>'}
-      <div style="text-align:right;margin-top:6px"><button class="ghost-danger" data-del="${esc(d.serial)}">Удалить из истории</button></div></td></tr>`;
+      <div style="text-align:right;margin-top:6px"><button class="ghost-danger" data-del="${esc(key)}">Удалить из истории</button></div></td></tr>`;
   }).join("");
 }
 $("histSearch").oninput = renderHistory;
@@ -655,7 +666,7 @@ $("histBody").onclick = async e => {
     openRow = null; return loadHistory();
   }
   const tr = e.target.closest("tr.dev-row");
-  if (tr) { openRow = openRow === tr.dataset.serial ? null : tr.dataset.serial; renderHistory(); }
+  if (tr) { openRow = openRow === tr.dataset.key ? null : tr.dataset.key; renderHistory(); }
 };
 
 async function pollLog() {
