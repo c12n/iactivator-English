@@ -17,7 +17,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import __version__, applog, core, history, report, settings
+from . import __version__, applog, autostart, core, history, report, settings, tray
 
 LANGUAGES = [
     ("Украинский", "uk"), ("Русский", "ru"), ("Английский (США)", "en"), ("Английский (Великобритания)", "en-GB"),
@@ -62,6 +62,8 @@ def _about() -> dict:
         "data_dir": str(core.app_data_dir()),
         "instagram": INSTAGRAM,
         "wallets": WALLETS,
+        "autostart_supported": autostart.supported(),
+        "autostart": autostart.is_enabled(),
     }
 
 
@@ -81,9 +83,24 @@ class State:
         self.busy = False
         self.labels: dict[str, str] = {}
         self.last_device_error = ""
+        self.steps: list[dict] = []  # live activation checklist shown in the UI
 
     def log(self, msg: str, serial: str = "", level: str = "") -> None:
         applog.add(msg, serial, level)
+
+    def set_steps(self, names: list) -> None:
+        self.steps = [{"name": n, "status": "pending", "detail": ""} for n in names]
+
+    def set_step(self, name: str, status: str, detail: str = "") -> None:
+        for s in self.steps:
+            if s["name"] == name:
+                s["status"], s["detail"] = status, detail
+                return
+
+    def fail_running_steps(self, detail: str = "") -> None:
+        for s in self.steps:
+            if s["status"] in ("run", "pending"):
+                s["status"], s["detail"] = ("error", detail) if s["status"] == "run" else ("skipped", "")
 
     def run(self, coro):
         """Run a coroutine on the device loop and wait for its result."""
@@ -101,9 +118,11 @@ class State:
                 await make_coro()
             except core.UserFacingError as e:
                 self.log(f"❌ {e}", serial)
+                self.fail_running_steps(str(e))
             except Exception as e:
                 self.log("❌ Ошибка: " + core.short_error(e), serial)
                 applog.exception(e, serial)
+                self.fail_running_steps(core.short_error(e))
             finally:
                 self.busy = False
         asyncio.run_coroutine_threadsafe(job(), self.loop)
@@ -114,7 +133,7 @@ STATE = State()
 
 
 async def _with_activator(serial, fn, action, detail=""):
-    act = core.Activator(serial, lambda m: STATE.log(m, serial))
+    act = core.Activator(serial, lambda m: STATE.log(m, serial), step=STATE.set_step)
     STATE.log(f"▶ {action}" + (f": {detail}" if detail else ""), serial)
     started = time.monotonic()
     try:
@@ -200,7 +219,7 @@ class Handler(BaseHTTPRequestHandler):
             })
         if self.path.startswith("/api/log"):
             entries, total = applog.since(int(self.path.partition("since=")[2] or 0))
-            return self._send(200, {"entries": entries, "next": total, "busy": STATE.busy})
+            return self._send(200, {"entries": entries, "next": total, "busy": STATE.busy, "steps": STATE.steps})
         if self.path.startswith("/api/devices"):
             # Polled every few seconds: cheap usbmux listing, full labels only for new devices
             # or when the page asks for a refresh.
@@ -242,6 +261,10 @@ class Handler(BaseHTTPRequestHandler):
             settings.delete_network(d.get("ssid", ""))
             STATE.log(f"Сеть «{d.get('ssid', '')}» удалена")
             return self._send(200, settings.load())
+        if self.path == "/api/settings/autostart":
+            on = autostart.set_enabled(bool(d.get("on")))
+            STATE.log("Автозапуск с Windows: " + ("включён" if on else "выключен"))
+            return self._send(200, {"autostart": on})
         if self.path == "/api/settings/ui":
             settings.save_ui(d)
             STATE.log(f"Тема оформления: {THEME_NAMES.get(d.get('theme'), d.get('theme'))}", level="debug")
@@ -365,13 +388,19 @@ class Handler(BaseHTTPRequestHandler):
             opts = _options(d)
             detail = f"{opts.language}, {opts.region}" + (f", Wi-Fi «{opts.wifi.ssid}»" if opts.wifi else "")
             action = "Активация" if opts.activate else "Настройка"
+            names = ([core.STEP_ACTIVATE] if opts.activate else []) + [core.STEP_LANG]
+            names += [core.STEP_SKIP] if opts.skip_setup else []
+            names += [core.STEP_WIFI] if opts.wifi else []
+            STATE.set_steps(names)
             job = lambda: _with_activator(serial, lambda a: a.run(opts), action, detail)
         elif self.path == "/api/wifi":
             wifi = _wifi(d)
             if wifi is None:
                 return self._send(400, {"error": "Введите имя сети"})
+            STATE.set_steps([])
             job = lambda: _with_activator(serial, lambda a: a.install_wifi_only(wifi), "Wi-Fi", f"«{wifi.ssid}»")
         elif self.path == "/api/erase":
+            STATE.set_steps([])
             job = lambda: _with_activator(serial, lambda a: a.erase(), "Стирание")
         else:
             return self._send(404, {"error": "not found"})
@@ -464,7 +493,43 @@ def _free_port(preferred: int = 8765) -> int:
             return s.getsockname()[1]
 
 
+DEFAULT_W, DEFAULT_H = 1120, 780
+MIN_W, MIN_H = 640, 560
+
+
+def _window_geometry(webview):
+    """Size and place the window so it always fits the screen, reusing the last size
+    the user left when it still fits. Without this the fixed 1120x780 window opens
+    bigger than the screen on Windows laptops scaled to 125-150%, pushing the bottom
+    bar and corners off-screen."""
+    try:
+        scr = webview.screens[0]
+        sw, sh = int(scr.width), int(scr.height)
+    except Exception:
+        sw, sh = DEFAULT_W, DEFAULT_H  # screen size unknown: fall back to the design size
+    fit_w, fit_h = min(DEFAULT_W, int(sw * 0.92)), min(DEFAULT_H, int(sh * 0.90))
+    saved = settings.get_window()
+    w = saved["w"] if isinstance(saved.get("w"), int) else fit_w
+    h = saved["h"] if isinstance(saved.get("h"), int) else fit_h
+    w = max(MIN_W, min(w, sw))  # never wider/taller than the actual screen
+    h = max(MIN_H, min(h, sh))
+    if isinstance(saved.get("x"), int) and isinstance(saved.get("y"), int) \
+            and 0 <= saved["x"] <= sw - w and 0 <= saved["y"] <= sh - h:
+        x, y = saved["x"], saved["y"]
+    else:  # center it, biased slightly up so it clears the taskbar/dock
+        x, y = max(0, (sw - w) // 2), max(0, (sh - h) // 2 - 10)
+    min_size = (min(MIN_W, w), min(MIN_H, h))  # min_size must not exceed the window itself
+    return w, h, x, y, min_size
+
+
 def main():
+    # Trim Edge WebView2 (Chromium) memory on Windows: no GPU process, smaller JS heap.
+    # Must be set before the WebView2 environment starts. Harmless on macOS (WebKit).
+    if sys.platform == "win32":
+        import os
+        os.environ.setdefault("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
+                              "--disable-gpu --disable-dev-shm-usage --js-flags=--max-old-space-size=128")
+
     port = _free_port()
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     url = f"http://127.0.0.1:{port}/"
@@ -480,8 +545,25 @@ def main():
     if webview is not None:
         global WINDOW
         threading.Thread(target=server.serve_forever, daemon=True).start()
-        WINDOW = webview.create_window(f"iActivator {__version__}", url, width=1120, height=780, min_size=(640, 560))
-        webview.start()
+        w, h, x, y, min_size = _window_geometry(webview)
+        WINDOW = webview.create_window(f"iActivator {__version__}", url, width=w, height=h,
+                                       x=x, y=y, min_size=min_size)
+        # Remember where the user left the window; write once on close, not on every drag.
+        geom: dict = {}
+        WINDOW.events.resized += lambda width, height: geom.update(w=width, h=height)
+        WINDOW.events.moved += lambda nx, ny: geom.update(x=nx, y=ny)
+
+        def _on_closing():
+            settings.save_window(geom)
+            return tray.on_closing(WINDOW)  # on Windows: hide to tray instead of quitting
+
+        WINDOW.events.closing += _on_closing
+
+        if sys.platform == "win32":
+            tray.start_windows_tray(WINDOW)
+            webview.start()
+        else:
+            webview.start(menu=tray.mac_menu(WINDOW))  # macOS menu bar
         return
 
     # Fallback without pywebview: open the page in the default browser.

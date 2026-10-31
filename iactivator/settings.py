@@ -89,6 +89,22 @@ def save_ui(values: dict) -> None:
         _save(data)
 
 
+def save_window(geom: dict) -> None:
+    """Remember the window size and position so it reopens where the user left it."""
+    with _lock:
+        data = load()
+        win = dict(data["ui"].get("window", {}))
+        for k in ("w", "h", "x", "y"):
+            if isinstance(geom.get(k), (int, float)):
+                win[k] = int(geom[k])
+        data["ui"]["window"] = win
+        _save(data)
+
+
+def get_window() -> dict:
+    return load()["ui"].get("window", {})
+
+
 def _keybag():
     return app_data_dir() / "supervision_keybag.pem"
 

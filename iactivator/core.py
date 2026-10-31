@@ -550,10 +550,19 @@ def _cert_der(keybag: Path) -> bytes:
     return x509.load_pem_x509_certificate(keybag.read_bytes()).public_bytes(Encoding.DER)
 
 
+# Named stages shown as a live checklist in the UI during a run.
+STEP_ACTIVATE = "Активация"
+STEP_LANG = "Язык и регион"
+STEP_SKIP = "Пропуск настроек"
+STEP_WIFI = "Wi-Fi"
+
+
 class Activator:
-    def __init__(self, serial: str, log: Log):
+    def __init__(self, serial: str, log: Log, step=None):
         self.serial = serial
         self.log = log
+        # step(name, status, detail="") — status: run | ok | warn | error. No-op by default.
+        self.step = step or (lambda name, status, detail="": None)
         self.lockdown: Optional[LockdownClient] = None
 
     async def connect(self) -> LockdownClient:
@@ -582,24 +591,33 @@ class Activator:
         # skip-setup configuration, and give it Wi-Fi only after setup has finished.
         # (The configuration service is not available before activation.)
         if opts.activate:
+            self.step(STEP_ACTIVATE, "run")
             await self.activate()
+            self.step(STEP_ACTIVATE, "ok")
+        self.step(STEP_LANG, "run")
         await self.set_language_region(opts)
+        self.step(STEP_LANG, "ok")
 
         keybag = keybag_path(opts.organization) if opts.skip_setup and opts.supervise else None
         if opts.skip_setup:
+            self.step(STEP_SKIP, "run")
             await self.apply_cloud_configuration(opts, keybag)
+            self.step(STEP_SKIP, "ok")
         elif await self.setup_finished() is False:
             self.log("ℹ «Пропустить все экраны настройки» выключено — экраны на iPhone нужно пройти вручную.")
 
         if opts.wifi:
+            self.step(STEP_WIFI, "run")
             if opts.skip_setup and await self.setup_finished() is False:
                 self.log("📱 Проведите вверх по экрану iPhone — он перейдёт на главный экран без настроек. "
                          "Wi-Fi установлю сразу после этого.")
                 if not await self.wait_setup_finished(timeout=600):
                     self.log("⚠ iPhone не завершил настройку за 10 минут. Wi-Fi не установлен — "
                              "нажмите «Только Wi-Fi», когда iPhone будет на главном экране.")
+                    self.step(STEP_WIFI, "warn", "не установлен — нажмите «Только Wi-Fi» на главном экране")
                     return
             await self.install_wifi(opts.wifi, keybag)
+            self.step(STEP_WIFI, "ok")
 
         self.log("✅ Готово. Если iPhone ещё на экране «Привет» — проведите вверх.")
 
