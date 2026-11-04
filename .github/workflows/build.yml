@@ -33,3 +33,25 @@ jobs:
           path: |
             dist/iActivator.exe
             dist/iActivator-mac.zip
+
+  # Publish a GitHub Release so the app's built-in update check can find the new
+  # version and the download page. Runs after both builds succeed.
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - id: ver
+        run: echo "v=$(grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' iactivator/__init__.py | head -1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v7
+        with:
+          path: artifacts
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.v }}
+          name: iActivator v${{ steps.ver.outputs.v }}
+          files: |
+            artifacts/iActivator-Windows/iActivator.exe
+            artifacts/iActivator-macOS/iActivator-mac.zip
