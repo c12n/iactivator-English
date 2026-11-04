@@ -17,7 +17,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import __version__, applog, autostart, core, history, report, settings, tray
+from . import __version__, applog, autostart, core, history, report, settings, tray, update
 
 LANGUAGES = [
     ("Украинский", "uk"), ("Русский", "ru"), ("Английский (США)", "en"), ("Английский (Великобритания)", "en-GB"),
@@ -217,6 +217,8 @@ class Handler(BaseHTTPRequestHandler):
                 "security": [[k, v] for k, v in core.WIFI_SECURITY.items()],
                 "about": _about(),
             })
+        if self.path.startswith("/api/update"):
+            return self._send(200, update.check(force="force" in self.path))
         if self.path.startswith("/api/log"):
             entries, total = applog.since(int(self.path.partition("since=")[2] or 0))
             return self._send(200, {"entries": entries, "next": total, "busy": STATE.busy, "steps": STATE.steps})
@@ -294,6 +296,9 @@ class Handler(BaseHTTPRequestHandler):
             url = d.get("url", "")
             if url == INSTAGRAM:
                 webbrowser.open(url)
+            return self._send(200, {"ok": True})
+        if self.path == "/api/update/open":
+            update.open_page()
             return self._send(200, {"ok": True})
 
         if self.path == "/api/open-data":

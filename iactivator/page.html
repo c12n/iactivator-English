@@ -7,15 +7,15 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2084%2084%22%3E%3Crect%20x%3D%22.5%22%20y%3D%22.5%22%20width%3D%2283%22%20height%3D%2283%22%20rx%3D%2220%22%20fill%3D%22%23F6F6F3%22%20stroke%3D%22%23E2E2DC%22/%3E%3Crect%20x%3D%2227%22%20y%3D%2210%22%20width%3D%2230%22%20height%3D%2250%22%20rx%3D%228%22%20fill%3D%22%232E3035%22/%3E%3Crect%20x%3D%2231%22%20y%3D%2215%22%20width%3D%2222%22%20height%3D%2238%22%20rx%3D%224%22%20fill%3D%22%23F6F6F3%22/%3E%3Cpath%20d%3D%22M38%2030l4-6v8h4l-4%208v-6z%22%20fill%3D%22%232E3035%22/%3E%3Cpath%20d%3D%22M42%2060v14%22%20stroke%3D%22%239AA3AD%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22/%3E%3C/svg%3E">
 <style>
   :root { --bg:#f5f5f7; --side:#ececf0; --card:#fff; --text:#1d1d1f; --muted:#86868b; --line:#e5e5ea; --field:#f2f2f5;
-          --accent:#0071e3; --accent-soft:#0071e314; --danger:#e0262f; --good:#1f9d55; --warn:#c77700;
+          --accent:#0297DE; --accent-soft:#0297DE16; --brand:#FC734D; --brand-soft:#FC734D1f; --danger:#e0262f; --good:#1f9d55; --warn:#c77700;
           --shadow:0 1px 2px #0000000a, 0 4px 16px #0000000a; }
   /* Theme: "auto" follows the system; data-theme on <html> forces light or dark. */
   :root[data-theme=dark] { color-scheme:dark; --bg:#161618; --side:#1e1e21; --card:#232326; --text:#f5f5f7; --muted:#98989d; --line:#323236; --field:#2c2c30;
-          --accent:#0a84ff; --accent-soft:#0a84ff22; --danger:#ff453a; --good:#30d158; --warn:#ff9f0a; --shadow:none; }
+          --accent:#0297DE; --accent-soft:#0297DE2b; --brand:#FC734D; --brand-soft:#FC734D2b; --danger:#ff453a; --good:#30d158; --warn:#ff9f0a; --shadow:none; }
   :root[data-theme=light] { color-scheme:light; }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme=light]) { color-scheme:dark; --bg:#161618; --side:#1e1e21; --card:#232326; --text:#f5f5f7; --muted:#98989d; --line:#323236; --field:#2c2c30;
-            --accent:#0a84ff; --accent-soft:#0a84ff22; --danger:#ff453a; --good:#30d158; --warn:#ff9f0a; --shadow:none; }
+            --accent:#0297DE; --accent-soft:#0297DE2b; --brand:#FC734D; --brand-soft:#FC734D2b; --danger:#ff453a; --good:#30d158; --warn:#ff9f0a; --shadow:none; }
   }
   * { box-sizing:border-box; }
   html, body { height:100%; }
@@ -145,6 +145,11 @@
               background:color-mix(in srgb, var(--warn) 13%, var(--card)); border:1px solid color-mix(in srgb, var(--warn) 35%, var(--line)); }
   .wifihint svg { color:var(--warn); margin-top:1px; }
   .wifihint span { color:var(--warn); font-size:13px; }
+  .updbar { display:flex; gap:10px; align-items:center; padding:10px 13px; margin-bottom:14px; border-radius:11px;
+            background:var(--brand-soft); border:1px solid color-mix(in srgb, var(--brand) 45%, var(--line)); }
+  .updbar svg { color:var(--brand); flex:none; }
+  .updbar span { flex:1; font-size:13px; }
+  .updbar button { flex:none; background:var(--brand); color:#fff; border-color:transparent; }
   .steps { display:flex; flex-direction:column; gap:10px; }
   .step { display:flex; gap:9px; align-items:center; font-size:14px; }
   .step svg { flex:none; }
@@ -208,6 +213,7 @@
 <main>
   <!-- ======== Активация ======== -->
   <section class="page on" id="p-activate">
+    <div id="updateBanner" class="updbar" style="display:none"></div>
     <div class="card">
       <div class="dev">
         <div class="phone"><svg><use href="#i-phone"/></svg></div>
@@ -372,7 +378,9 @@
       <div class="hero">
         <div class="logo"><svg><use href="#logo"/></svg></div>
         <div><b>iActivator</b><span id="aboutVer">Версия —</span></div>
+        <button id="checkUpd" style="margin-left:auto"><svg><use href="#i-refresh"/></svg>Проверить обновления</button>
       </div>
+      <div id="updResult" class="hint" style="margin-top:10px"></div>
     </div>
     <div class="grid">
       <div class="card">
@@ -613,6 +621,22 @@ function rememberForm() {
   updateWifiHint();
 }
 
+async function checkUpdate(force) {
+  try {
+    const u = await api("/api/update" + (force ? "?force=1" : ""));
+    if (u && u.available) {
+      $("updateBanner").style.display = "";
+      $("updateBanner").innerHTML = `<svg><use href="#i-download"/></svg>`
+        + `<span>Доступна новая версия ${esc(u.latest)} (у вас ${esc(u.current)}). История и настройки сохранятся.</span>`
+        + `<button id="updGet">Скачать</button>`;
+      $("updGet").onclick = () => api("/api/update/open", {});
+    } else {
+      $("updateBanner").style.display = "none";
+    }
+    return u;
+  } catch (e) { return null; }
+}
+
 function updateWifiHint() {
   const ssid = ($("quickNet").value || "").trim();
   $("wifiHint").style.display = (ssid && !$("supervise").checked) ? "" : "none";
@@ -802,6 +826,7 @@ async function init() {
   }
   await loadSettings(true);
   updateWifiHint();
+  checkUpdate(false);
   pollLog();
   loadHistory();
   await pollDevices(true);
@@ -816,6 +841,13 @@ $("check").onclick = runCheck;
 $("start").onclick = start;
 $("status").onclick = () => show("log");
 $("openData").onclick = () => api("/api/open-data", {});
+$("checkUpd").onclick = async () => {
+  $("updResult").textContent = "Проверяю…";
+  const u = await checkUpdate(true);
+  if (!u || u.error) $("updResult").textContent = "Не удалось проверить (нет интернета?).";
+  else if (u.available) $("updResult").innerHTML = `Есть новая версия ${esc(u.latest)} — кнопка «Скачать» вверху на вкладке «Активация».`;
+  else $("updResult").textContent = "У вас последняя версия.";
+};
 $("region").onchange = () => {
   const r = regions.find(([, c]) => c === $("region").value);
   if (r) $("timezone").value = r[2];
