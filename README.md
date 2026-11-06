@@ -142,6 +142,12 @@ No. This is the English edition of [iActivator by mr1garik](https://github.com/m
 | **Refreshed screenshots** | Replace the gallery with captures of the English interface |
 | **Broader iOS coverage** | Extend the compatibility table as new iOS versions are verified on real devices |
 
+## Could this be an iPhone app?
+
+Not a working one. iActivator talks to a second iPhone over USB (usbmux and lockdown services: activation, configuration, diagnostics). iOS gives apps no way to do that with another iPhone, in the App Store or sideloaded, and Apple's own answer points the same way: setting up an iPhone by cable takes Apple Configurator for Mac. An Android version is possible in principle (public USB host APIs exist, and the underlying libraries have run on Android in privileged contexts), but no finished unrooted APK doing lockdown activation exists today: it is a research project, not a port.
+
+What does exist is a faithful **iOS mockup** in [mockup-ios](mockup-ios/): the full interface, a simulated run, and a real "This iPhone" panel, clearly labelled as a simulation. Its unsigned IPA ships as the `mockup-v1.0` pre-release.
+
 ## License
 
 MIT: free to use, modify and distribute. See [LICENSE](LICENSE).
