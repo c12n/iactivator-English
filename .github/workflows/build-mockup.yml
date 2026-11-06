@@ -1,0 +1,96 @@
+# Builds the iOS mockup app (mockup-ios/) as an unsigned sideload IPA.
+# The mockup is a simulation: a real iActivator cannot run on iOS, because iOS
+# gives apps no way to talk to a second iPhone over USB (usbmux / lockdown).
+name: build-mockup
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["mockup-ios/**", ".github/workflows/build-mockup.yml"]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure app icon exists
+        working-directory: mockup-ios
+        run: |
+          if [ ! -f Sources/Assets.xcassets/AppIcon.appiconset/icon-1024.png ]; then
+            swift scripts/make-icon.swift Sources/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+          fi
+          ls -lh Sources/Assets.xcassets/AppIcon.appiconset/
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: mockup-ios
+        run: xcodegen generate
+
+      - name: Build unsigned Release app
+        working-directory: mockup-ios
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project IActivatorMockup.xcodeproj \
+            -scheme IActivatorMockup \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            CODE_SIGN_STYLE=Manual \
+            | tee "$RUNNER_TEMP/xcodebuild.log" | tail -30
+
+      - name: Verify built app
+        run: |
+          APP="$RUNNER_TEMP/dd/Build/Products/Release-iphoneos/IActivatorMockup.app"
+          test -d "$APP" || { echo "app not found"; ls -R "$RUNNER_TEMP/dd/Build/Products" || true; exit 1; }
+          test -x "$APP/IActivatorMockup" || { echo "executable missing"; ls -la "$APP"; exit 1; }
+          BID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")"
+          VER="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist")"
+          echo "bundle=$BID version=$VER"
+          test "$BID" = "com.c12n.iactivator.mockup"
+          test "$VER" = "1.0"
+
+      - name: Package IPA
+        run: |
+          APP="$RUNNER_TEMP/dd/Build/Products/Release-iphoneos/IActivatorMockup.app"
+          rm -rf "$RUNNER_TEMP/staging" IActivatorMockup.ipa
+          mkdir -p "$RUNNER_TEMP/staging/Payload"
+          cp -R "$APP" "$RUNNER_TEMP/staging/Payload/IActivatorMockup.app"
+          (cd "$RUNNER_TEMP/staging" && zip -qry "$GITHUB_WORKSPACE/IActivatorMockup.ipa" Payload)
+          ls -lh IActivatorMockup.ipa
+          shasum -a 256 IActivatorMockup.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IActivatorMockup-ipa
+          path: IActivatorMockup.ipa
+
+  # Published as a pre-release so it never replaces the desktop app's
+  # "latest" release (the desktop app's update check reads releases/latest).
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: IActivatorMockup-ipa
+          path: artifacts
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: mockup-v1.0
+          name: iActivator Mockup v1.0 (iOS simulation)
+          prerelease: true
+          body: |
+            A design and flow mockup of iActivator for iPhone: the full interface, a simulated activation run and diagnostics, and a real "This iPhone" panel. Sample data only: it does not connect to or change any device. A real iActivator runs on Windows and macOS, because iOS gives apps no way to talk to a second iPhone over USB. Unsigned sideload IPA: install with Feather or your usual signing tool.
+          files: artifacts/IActivatorMockup.ipa
