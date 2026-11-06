@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import json
 import platform
+import re
 import socket
 import subprocess
 import sys
@@ -291,7 +292,7 @@ class Handler(BaseHTTPRequestHandler):
             _open_folder(str(applog.logs_dir()))
             return self._send(200, {"ok": True})
         if self.path == "/api/logs/export":
-            return self._send(200, _export_logs(bool(d.get("history", True))))
+            return self._send(200, _export_logs(bool(d.get("history", True)), bool(d.get("redact"))))
         if self.path == "/api/open-url":
             url = d.get("url", "")
             if url == INSTAGRAM:
@@ -347,7 +348,7 @@ class Handler(BaseHTTPRequestHandler):
                 history.update_device(info)
                 results = STATE.run(core.run_health_check(serial, check_activation=not STATE.busy))
                 _record_checks(serial, "Диагностика", results)
-                path = report.build_pdf(info, results)
+                path = report.build_pdf(info, results, STATE.steps)
                 history.add_event(serial, "PDF-отчёт", "info", path.name)
                 STATE.log(f"📄 Отчёт сохранён: {path}", serial, "ok")
                 report.open_file(path)
@@ -450,10 +451,39 @@ def _export(secrets: bool, with_history: bool) -> dict:
     return {"path": str(path)}
 
 
-def _export_logs(with_history: bool) -> dict:
+def _device_identifiers() -> set:
+    """Every serial number / IMEI / UDID the program knows, to blank out when sharing."""
+    ids: set = set()
+    try:
+        for key, d in history.export().items():
+            ids.add(str(key))
+            for k in ("id", "serial", "imei", "imei2"):
+                if d.get(k):
+                    ids.add(str(d[k]))
+    except Exception:
+        pass
+    return {i for i in ids if i and i != "-" and len(i) >= 5}
+
+
+def _redact_ids(text: str, idents: set) -> str:
+    """Replace known identifiers, then IMEI-like digit runs and UDIDs, with ***."""
+    for ident in sorted(idents, key=len, reverse=True):
+        text = text.replace(ident, "***")
+    text = re.sub(r"\b\d{14,15}\b", "***", text)                       # IMEI
+    text = re.sub(r"\b[0-9a-fA-F]{40}\b", "***", text)                 # old-style UDID
+    text = re.sub(r"\b[0-9A-Fa-f]{8}-[0-9A-Fa-f]{16}\b", "***", text)  # new-style UDID
+    return text
+
+
+def _export_logs(with_history: bool, redact: bool = False) -> dict:
     """Bundle the daily logs (and optionally the device history) into one text file
-    that can be sent for support/diagnosis."""
-    path = _save_path(f"iActivator-журнал-{time.strftime('%Y-%m-%d_%H%M')}.txt")
+    that can be sent for support/diagnosis. With redact=True the serial numbers and
+    IMEIs are blanked out and the history is left out, so the file can be shared
+    without revealing which devices were processed."""
+    if redact:
+        with_history = False
+    suffix = "-без-номеров" if redact else ""
+    path = _save_path(f"iActivator-журнал{suffix}-{time.strftime('%Y-%m-%d_%H%M')}.txt")
     if path is None:
         return {"cancelled": True}
     a = _about()
@@ -461,8 +491,10 @@ def _export_logs(with_history: bool) -> dict:
         "=== iActivator — журнал для диагностики ===",
         f"Создан: {time.strftime('%Y-%m-%d %H:%M:%S')}",
         f"Версия: {a['version']}   Система: {a['system']}   Python: {a['python']}   pymobiledevice3: {a['pymobiledevice3']}",
-        "",
     ]
+    if redact:
+        parts.append("Серийные номера, IMEI и UDID скрыты (***); история устройств не включена.")
+    parts.append("")
     logs = sorted(applog.logs_dir().glob("*.log"))
     if logs:
         parts.append(f"=== ЗАПИСИ ЖУРНАЛА (файлов: {len(logs)}) ===")
@@ -476,8 +508,11 @@ def _export_logs(with_history: bool) -> dict:
     if with_history:
         parts.append("\n\n=== ИСТОРИЯ УСТРОЙСТВ (JSON) ===")
         parts.append(json.dumps(history.export(), ensure_ascii=False, indent=1))
+    text = "\n".join(parts) + "\n"
+    if redact:
+        text = _redact_ids(text, _device_identifiers())
     try:
-        path.write_text("\n".join(parts) + "\n", encoding="utf-8")
+        path.write_text(text, encoding="utf-8")
     except OSError as e:
         STATE.log(f"❌ Не удалось сохранить журнал: {e}")
         return {"error": f"Не удалось сохранить файл: {e}"}

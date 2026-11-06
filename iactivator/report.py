@@ -16,6 +16,10 @@ LINE = (229, 229, 234)
 SOFT = (246, 246, 243)
 STATUS = {"ok": ((31, 157, 85), "Норма"), "warn": ((199, 119, 0), "Внимание"),
           "bad": ((224, 38, 47), "Неисправность"), "info": ((134, 134, 139), "Инфо")}
+# Activation-step states (from the live checklist) -> colour + word for the report.
+STEP_STATUS = {"ok": ((31, 157, 85), "Готово"), "warn": ((199, 119, 0), "С замечанием"),
+               "error": ((224, 38, 47), "Ошибка"), "skipped": ((134, 134, 139), "Пропущено"),
+               "pending": ((134, 134, 139), "—"), "run": ((134, 134, 139), "—")}
 
 # Regular / bold fonts with Cyrillic, per platform.
 FONTS = [
@@ -123,7 +127,32 @@ def _checks(pdf: FPDF, results: list) -> None:
         pdf.ln(1.2)
 
 
-def build_pdf(info: dict, results: list) -> Path:
+def _steps(pdf: FPDF, steps: list) -> None:
+    """Per-step result of the last activation run (activate, language, skip, Wi-Fi)."""
+    width = pdf.w - pdf.l_margin - pdf.r_margin
+    for s in steps:
+        color, word = STEP_STATUS.get(s.get("status"), STEP_STATUS["pending"])
+        if pdf.get_y() > pdf.h - 30:
+            pdf.add_page()
+        y = pdf.get_y() + 1.5
+        pdf.set_fill_color(*color)
+        pdf.ellipse(pdf.l_margin, y + 1, 2.6, 2.6, style="F")
+        pdf.set_xy(pdf.l_margin + 5, y)
+        pdf.set_font("ui", "B", 10)
+        pdf.set_text_color(*INK)
+        pdf.cell(width - 40, 4.8, s.get("name", ""))
+        pdf.set_font("ui", "", 8.5)
+        pdf.set_text_color(*color)
+        pdf.cell(35, 4.8, word, align="R", new_x="LMARGIN", new_y="NEXT")
+        if s.get("detail"):
+            pdf.set_x(pdf.l_margin + 5)
+            pdf.set_font("ui", "", 9)
+            pdf.set_text_color(*MUTED)
+            pdf.multi_cell(width - 5, 4.4, s["detail"], new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(1.2)
+
+
+def build_pdf(info: dict, results: list, steps: list | None = None) -> Path:
     now = datetime.now()
     stamp = now.strftime("%d.%m.%Y, %H:%M")
     pdf = _Pdf(stamp)
@@ -185,6 +214,10 @@ def build_pdf(info: dict, results: list) -> Path:
         if b.get("level") is not None:
             brows.append(("Заряд сейчас", f"{b['level']}%"))
         _pairs(pdf, brows)
+
+    if steps:
+        _section(pdf, "Ход активации (последний запуск)")
+        _steps(pdf, steps)
 
     _section(pdf, "Проверка")
     _checks(pdf, results)
