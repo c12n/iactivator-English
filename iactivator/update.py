@@ -15,7 +15,7 @@ import urllib.request
 
 from . import __version__, applog
 
-REPO = "mr1garik/iActivator"
+REPO = "c12n/iactivator-English"
 _API = f"https://api.github.com/repos/{REPO}/releases/latest"
 RELEASES_PAGE = f"https://github.com/{REPO}/releases/latest"
 _lock = threading.Lock()
@@ -70,7 +70,7 @@ def check(force: bool = False) -> dict:
     except Exception as e:
         info["error"] = True  # offline, no releases yet, or TLS/cert trouble
         try:
-            applog.add(f"Проверка обновлений не удалась: {type(e).__name__}: {e}", level="debug")
+            applog.add(f"Update check failed: {type(e).__name__}: {e}", level="debug")
         except Exception:
             pass
     with _lock:

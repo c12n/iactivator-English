@@ -129,30 +129,30 @@ def export_data(secrets: bool, include_history: bool) -> dict:
 def import_data(src: dict) -> list[str]:
     """Merge an exported file into this computer's settings; returns what was done, for the journal."""
     if not isinstance(src, dict) or src.get("kind") != EXPORT_KIND:
-        raise ValueError("Это не файл настроек iActivator")
+        raise ValueError("This is not an iActivator settings file")
     done = []
     nets = [n for n in src.get("networks", []) if isinstance(n, dict) and str(n.get("ssid", "")).strip()]
     for n in reversed(nets):  # save_network puts each at the top; keep the file's order
         save_network(n["ssid"], n.get("password", ""), n.get("security", "Any"), bool(n.get("hidden")), bool(n.get("nomac", True)))
     if nets:
         with_pass = sum(1 for n in nets if n.get("password"))
-        done.append(f"Сети Wi-Fi: {len(nets)}" + (f" (с паролями: {with_pass})" if with_pass else " (без паролей)"))
+        done.append(f"Wi-Fi networks: {len(nets)}" + (f" (with passwords: {with_pass})" if with_pass else " (no passwords)"))
     with _lock:
         data = load()
         if isinstance(src.get("last"), dict):
             data["last"] = src["last"]
-            done.append("Язык, регион и режимы")
+            done.append("Language, region and modes")
         if isinstance(src.get("ui"), dict) and src["ui"].get("theme") in THEMES:
             data["ui"]["theme"] = src["ui"]["theme"]
-            done.append("Тема оформления")
+            done.append("Theme")
         _save(data)
     if src.get("supervision_keybag"):
         key = base64.b64decode(src["supervision_keybag"])
         if not _keybag().exists():
             _keybag().write_bytes(key)
-            done.append("Ключ контролируемого режима")
+            done.append("Supervision key")
         elif _keybag().read_bytes() != key:
-            done.append("⚠ Ключ контролируемого режима не заменён: на этом компьютере уже есть свой")
+            done.append("⚠ Supervision key not replaced: this computer already has its own")
     if isinstance(src.get("history"), dict):
-        done.append(f"История: устройств {history.merge(src['history'])}")
+        done.append(f"History: {history.merge(src['history'])} devices")
     return done

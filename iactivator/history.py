@@ -13,7 +13,7 @@ from datetime import datetime
 from .core import app_data_dir
 
 _lock = threading.Lock()
-RESULT = {"ok": "Успешно", "warn": "Замечания", "error": "Ошибка", "info": ""}
+RESULT = {"ok": "Success", "warn": "Warnings", "error": "Error", "info": ""}
 
 
 def json_path():
@@ -80,11 +80,11 @@ def _save(data: dict) -> None:
 
 
 def _write_csv(data: dict) -> None:
-    # One row per event; ";" and a BOM so Excel with a Russian locale opens it correctly.
+    # One row per event; a BOM is included so Excel opens the UTF-8 file correctly.
     try:
         with open(csv_path(), "w", newline="", encoding="utf-8-sig") as f:
-            w = csv.writer(f, delimiter=";")
-            w.writerow(["Дата и время", "Серийный №", "IMEI", "IMEI 2", "Модель", "Память", "iOS", "Действие", "Результат", "Подробности"])
+            w = csv.writer(f, delimiter=",")
+            w.writerow(["Date and time", "Serial No.", "IMEI", "IMEI 2", "Model", "Storage", "iOS", "Action", "Result", "Details"])
             rows = [(e, d) for d in data.values() for e in d.get("events", [])]
             for e, d in sorted(rows, key=lambda r: r[0]["time"]):
                 w.writerow([e["time"], d.get("serial") or d.get("id") or "", d.get("imei") or "", d.get("imei2") or "", d.get("model_name") or d.get("model") or "",
@@ -148,8 +148,8 @@ def summary() -> dict:
         "stats": {
             "total": len(devices),
             "today": sum(1 for d in devices if d.get("last_seen", "").startswith(today)),
-            "activated": sum(1 for d in devices if did(d, "Активация")),
-            "faulty": sum(1 for d in devices if did(d, "Диагностика", "error") or did(d, "Локатор и MDM", "error")),
+            "activated": sum(1 for d in devices if did(d, "Activation")),
+            "faulty": sum(1 for d in devices if did(d, "Diagnostics", "error") or did(d, "Find My & MDM", "error")),
         },
         "csv": str(csv_path()),
     }

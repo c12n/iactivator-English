@@ -8,20 +8,20 @@ from pathlib import Path
 from fpdf import FPDF
 
 from . import __version__
-from .core import ACTIVATION_RU, app_data_dir
+from .core import ACTIVATION_LABELS, app_data_dir
 
 INK = (46, 48, 53)
 MUTED = (134, 134, 139)
 LINE = (229, 229, 234)
 SOFT = (246, 246, 243)
-STATUS = {"ok": ((31, 157, 85), "Норма"), "warn": ((199, 119, 0), "Внимание"),
-          "bad": ((224, 38, 47), "Неисправность"), "info": ((134, 134, 139), "Инфо")}
+STATUS = {"ok": ((31, 157, 85), "OK"), "warn": ((199, 119, 0), "Warning"),
+          "bad": ((224, 38, 47), "Fault"), "info": ((134, 134, 139), "Info")}
 # Activation-step states (from the live checklist) -> colour + word for the report.
-STEP_STATUS = {"ok": ((31, 157, 85), "Готово"), "warn": ((199, 119, 0), "С замечанием"),
-               "error": ((224, 38, 47), "Ошибка"), "skipped": ((134, 134, 139), "Пропущено"),
+STEP_STATUS = {"ok": ((31, 157, 85), "Done"), "warn": ((199, 119, 0), "With warning"),
+               "error": ((224, 38, 47), "Error"), "skipped": ((134, 134, 139), "Skipped"),
                "pending": ((134, 134, 139), "—"), "run": ((134, 134, 139), "—")}
 
-# Regular / bold fonts with Cyrillic, per platform.
+# Regular / bold system fonts, per platform.
 FONTS = [
     ("/System/Library/Fonts/Supplemental/Arial.ttf", "/System/Library/Fonts/Supplemental/Arial Bold.ttf"),
     ("C:/Windows/Fonts/arial.ttf", "C:/Windows/Fonts/arialbd.ttf"),
@@ -31,7 +31,7 @@ FONTS = [
 
 
 def reports_dir() -> Path:
-    d = app_data_dir() / "Отчёты"
+    d = app_data_dir() / "Reports"
     d.mkdir(exist_ok=True)
     return d
 
@@ -46,7 +46,7 @@ class _Pdf(FPDF):
                 self.add_font("ui", "B", bold)
                 break
         else:
-            raise RuntimeError("Не найден шрифт с кириллицей для PDF")
+            raise RuntimeError("No suitable font found for the PDF report")
         self.set_margins(18, 16, 18)
         self.set_auto_page_break(True, 18)
 
@@ -54,8 +54,8 @@ class _Pdf(FPDF):
         self.set_y(-13)
         self.set_font("ui", "", 8)
         self.set_text_color(*MUTED)
-        self.cell(0, 5, f"Создано в iActivator {__version__} · {self.stamp}", align="L")
-        self.cell(0, 5, f"стр. {self.page_no()}", align="R")
+        self.cell(0, 5, f"Created with iActivator {__version__} · {self.stamp}", align="L")
+        self.cell(0, 5, f"page {self.page_no()}", align="R")
 
 
 def _logo(pdf: FPDF, x: float, y: float, size: float) -> None:
@@ -154,7 +154,7 @@ def _steps(pdf: FPDF, steps: list) -> None:
 
 def build_pdf(info: dict, results: list, steps: list | None = None) -> Path:
     now = datetime.now()
-    stamp = now.strftime("%d.%m.%Y, %H:%M")
+    stamp = now.strftime("%m/%d/%Y, %H:%M")
     pdf = _Pdf(stamp)
     pdf.add_page()
 
@@ -163,13 +163,13 @@ def build_pdf(info: dict, results: list, steps: list | None = None) -> Path:
     pdf.set_xy(pdf.l_margin + 18, 14.5)
     pdf.set_font("ui", "B", 15)
     pdf.set_text_color(*INK)
-    pdf.cell(90, 7, "Отчёт о проверке iPhone", new_x="LEFT", new_y="NEXT")
+    pdf.cell(90, 7, "iPhone check report", new_x="LEFT", new_y="NEXT")
     pdf.set_font("ui", "", 9)
     pdf.set_text_color(*MUTED)
     pdf.cell(90, 5, "iActivator")
     pdf.set_xy(pdf.w - pdf.r_margin - 60, 14.5)
     pdf.set_font("ui", "", 8.5)
-    pdf.cell(60, 5, "Дата и время проверки", align="R", new_x="LEFT", new_y="NEXT")
+    pdf.cell(60, 5, "Date and time of check", align="R", new_x="LEFT", new_y="NEXT")
     pdf.set_font("ui", "B", 11)
     pdf.set_text_color(*INK)
     pdf.cell(60, 6, stamp, align="R")
@@ -184,42 +184,42 @@ def build_pdf(info: dict, results: list, steps: list | None = None) -> Path:
 
     bad = sum(r["status"] == "bad" for r in results)
     warn = sum(r["status"] == "warn" for r in results)
-    color, verdict = ((224, 38, 47), f"Найдены неисправности: {bad}") if bad else \
-                     ((199, 119, 0), f"Есть замечания: {warn}") if warn else ((31, 157, 85), "Неисправностей не найдено")
+    color, verdict = ((224, 38, 47), f"Faults found: {bad}") if bad else \
+                     ((199, 119, 0), f"Warnings: {warn}") if warn else ((31, 157, 85), "No faults found")
     pdf.set_font("ui", "B", 11)
     pdf.set_text_color(*color)
     pdf.cell(0, 6, verdict, new_x="LMARGIN", new_y="NEXT")
 
-    _section(pdf, "Устройство")
-    rows = [("Серийный номер", info.get("serial")), ("IMEI", info.get("imei"))]
+    _section(pdf, "Device")
+    rows = [("Serial number", info.get("serial")), ("IMEI", info.get("imei"))]
     if info.get("imei2"):
         rows.append(("IMEI 2", info["imei2"]))
-    rows += [("Модель", f"{info.get('model_name')} ({info.get('model')})"),
+    rows += [("Model", f"{info.get('model_name')} ({info.get('model')})"),
              ("iOS", f"{info.get('ios')} ({info.get('build')})" if info.get("ios") else None),
-             ("Память", info.get("capacity")),
-             ("Активация", str(ACTIVATION_RU.get(info.get("activation"), info.get("activation") or "—")).capitalize()),
-             ("Модем", info.get("baseband"))]
+             ("Storage", info.get("capacity")),
+             ("Activation", str(ACTIVATION_LABELS.get(info.get("activation"), info.get("activation") or "—")).capitalize()),
+             ("Modem", info.get("baseband"))]
     _pairs(pdf, rows)
 
     b = info.get("battery") or {}
     if b:
-        _section(pdf, "Батарея")
+        _section(pdf, "Battery")
         brows = []
         if b.get("health") is not None:
-            brows.append(("Ёмкость (здоровье)", f"{b['health']}%"))
+            brows.append(("Health", f"{b['health']}%"))
         if b.get("full_mah"):
-            brows.append(("Текущая / заводская", f"{b['full_mah']} / {b.get('design_mah')} мАч"))
+            brows.append(("Current / design capacity", f"{b['full_mah']} / {b.get('design_mah')} mAh"))
         if b.get("cycles") is not None:
-            brows.append(("Циклы зарядки", b["cycles"]))
+            brows.append(("Charge cycles", b["cycles"]))
         if b.get("level") is not None:
-            brows.append(("Заряд сейчас", f"{b['level']}%"))
+            brows.append(("Charge now", f"{b['level']}%"))
         _pairs(pdf, brows)
 
     if steps:
-        _section(pdf, "Ход активации (последний запуск)")
+        _section(pdf, "Activation progress (last run)")
         _steps(pdf, steps)
 
-    _section(pdf, "Проверка")
+    _section(pdf, "Checks")
     _checks(pdf, results)
 
     safe = "".join(c for c in f"{title}_{info.get('serial') or ''}" if c.isalnum() or c in " _-,").strip()

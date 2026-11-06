@@ -2,95 +2,148 @@
 
 <img src="assets/social-preview.png" alt="iActivator" width="820">
 
-### Активация и настройка iPhone в один клик · Windows и macOS
+### One-click iPhone activation and setup | Windows and macOS
 
-[![Скачать для Windows и macOS](https://img.shields.io/badge/⬇%20Скачать-Windows%20%7C%20macOS-0297DE?style=for-the-badge)](https://github.com/mr1garik/iActivator/releases/latest)
+[![Download for Windows and macOS](https://img.shields.io/badge/Download-Windows%20%7C%20macOS-0297DE?style=for-the-badge)](https://github.com/c12n/iactivator-English/releases/latest)
 
-[![Скачиваний](https://img.shields.io/github/downloads/mr1garik/iActivator/total?label=скачиваний&color=0297DE)](https://github.com/mr1garik/iActivator/releases)
-[![Лицензия MIT](https://img.shields.io/github/license/mr1garik/iActivator?label=лицензия&color=0297DE)](LICENSE)
-![Платформы](https://img.shields.io/badge/платформы-Windows%20%7C%20macOS-2E3035)
+[![Downloads](https://img.shields.io/github/downloads/c12n/iactivator-English/total?label=downloads&color=0297DE)](https://github.com/c12n/iactivator-English/releases)
+[![License MIT](https://img.shields.io/github/license/c12n/iactivator-English?label=license&color=0297DE)](LICENSE)
+![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS-2E3035)
+![Language](https://img.shields.io/badge/interface-English-2E3035)
 
 </div>
 
-Активация iPhone и пропуск экранов настройки, с любым языком и регионом (Украина по умолчанию). Работает на Windows и macOS.
+[Download](https://github.com/c12n/iactivator-English/releases/latest) | [How it works](#how-it-works) | [FAQ](#faq) | [Report an issue](https://github.com/c12n/iactivator-English/issues)
 
-**💬 Обратная связь:** нашли проблему или есть идея? Напишите во вкладке [Issues](https://github.com/mr1garik/iActivator/issues) — программа дорабатывается по вашим отзывам.
+iActivator activates an iPhone and skips the setup screens, with any language and region you choose. This is the **English edition**: the whole interface, log, history and PDF reports are in native English, English (US) and the United States are the defaults, and the built-in update check points at this repository, so an update never switches you back to another language edition. It runs on Windows and macOS.
 
-## Как выглядит
+**Feedback:** found a problem or have an idea? Open the [Issues](https://github.com/c12n/iactivator-English/issues) tab. The program is improved based on your reports.
 
-![Демо: активация и настройка iPhone](assets/demo.gif)
+## What it looks like
 
-Светлая и тёмная темы:
+![Demo: iPhone activation and setup](assets/demo.gif)
+
+Light and dark themes:
 
 <p align="center">
-  <img src="assets/screenshot-light.png" width="49%" alt="Светлая тема">
-  <img src="assets/screenshot-dark.png" width="49%" alt="Тёмная тема">
+  <img src="assets/screenshot-light.png" width="49%" alt="Light theme">
+  <img src="assets/screenshot-dark.png" width="49%" alt="Dark theme">
 </p>
 
-## Поддержка: модели, iOS, система
+## Features
 
-| | Поддержка |
+| | |
 |---|---|
-| **Модели iPhone** | iPhone 5s и новее (всё, что работает на iOS 12+). iPad тоже активируется, но интерфейс рассчитан на iPhone. |
-| **Версии iOS** | iOS 12–18. Пропуск экранов и Wi-Fi профилем работают на iOS 13+; на более старых активация проходит, часть настроек может не примениться. |
-| **Windows** | Windows 10 и 11. Нужен драйвер Apple: «Apple Devices» из Microsoft Store или iTunes. Есть значок в трее и автозапуск. |
-| **macOS** | macOS 11 Big Sur и новее (Intel и Apple Silicon). Драйверы не нужны. Пункты управления — в верхней строке меню. |
-| **Блокировка активации (iCloud)** | Не обходится. Привязанный к чужому Apple ID iPhone нужно снять с аккаунта владельца. |
+| **One-click activation** | Activates the iPhone through Apple's servers. The internet comes from the computer over USB, so the iPhone does not need Wi-Fi for this step |
+| **Any language and region** | Sets the language, region (locale, for example `en_US`), time zone and 24-hour format. English (US) is ready out of the box, and the full list can be read straight from the iPhone |
+| **Setup screens skipped** | Skips the Setup Assistant screens the same way Apple Configurator and 3uTools do, with an optional supervised mode |
+| **Wi-Fi that actually connects** | Installs a Wi-Fi profile and then reads the profile list back from the device to confirm it landed, with up to 3 attempts |
+| **Diagnostics** | Battery health and cycles, charging, Wi-Fi and Bluetooth modules, modem, storage, crash logs from the last 30 days, Find My and MDM status |
+| **PDF report** | A dated report for each checked iPhone: identity, battery, lock status, every check result, and the step-by-step outcome of the last activation run |
+| **History and log** | Every device and action is remembered, the log can be exported for your own archive or in a redacted copy with serial numbers, IMEIs and UDIDs hidden |
+| **Portable settings** | Wi-Fi networks, language, region, modes and theme export to a single file and import on another computer |
 
-Если какая-то модель или версия iOS повела себя не так — напишите во вкладке [Issues](https://github.com/mr1garik/iActivator/issues), добавим в таблицу.
+## Compatibility
 
-## Что делает
-1. Активирует iPhone через серверы Apple. Интернет берётся у компьютера по USB, поэтому Wi‑Fi на телефоне для этого не нужен.
-2. Ставит язык, регион (локаль, например `uk_UA`), часовой пояс и 24‑часовой формат.
-3. Пропускает экраны Setup Assistant (контролируемый режим, как в Apple Configurator и 3uTools).
-4. Устанавливает профиль Wi‑Fi и проверяет, что устройство его приняло.
-
-iPhone с включённой Блокировкой активации (iCloud) программа не активирует: нужен Apple ID владельца.
-
-## Почему Wi‑Fi из 3uTools иногда не работает и что сделано здесь
-| Причина | Решение |
+| | Support |
 |---|---|
-| Тип защиты прописан жёстко как WPA, а роутер работает в режиме WPA3 или WPA2/WPA3 | По умолчанию стоит `Any`: iOS сама выбирает протокол |
-| «Частный адрес Wi‑Fi» (случайный MAC) не проходит фильтр по MAC или резервацию DHCP | Опция отключает случайный MAC для этой сети |
-| После пропуска настройки Wi‑Fi‑модуль остаётся выключенным | Перед установкой профиля модуль включается принудительно |
-| Профиль ставится без прав supervisor, и во время настройки его некому подтвердить | Профиль ставится тихо, после escalate сертификатом supervisor |
-| Пробелы в SSID, слишком короткий пароль | Проверяется до отправки на устройство |
-| Профиль не установился, а программа об этом не сообщила | После установки список профилей читается с устройства; до 3 попыток |
+| **iPhone models** | iPhone 5s and newer (anything that runs iOS 12 or later). iPads activate too, but the interface is designed for iPhone |
+| **iOS versions** | iOS 12 to 18. Setup skipping and the Wi-Fi profile work on iOS 13 and later; on older versions activation completes, but some settings may not apply |
+| **Windows** | Windows 10 and 11. An Apple driver is required: Apple Devices from the Microsoft Store, or iTunes. System tray icon and start-with-Windows are included |
+| **macOS** | macOS 11 Big Sur and later (Intel and Apple Silicon). No drivers needed. Controls live in the top menu bar |
+| **Activation Lock (iCloud)** | Not bypassed. An iPhone linked to someone else's Apple ID has to be removed from the owner's account |
 
-## Программа
-Интерфейс открывается в отдельном окне программы (на Mac через WebKit, на Windows через Edge WebView2).
+If a model or iOS version behaves differently for you, say so in [Issues](https://github.com/c12n/iactivator-English/issues) and the table will be updated.
 
-- **Mac:** `dist/iActivator.app`. Её можно перенести в «Программы». Собирается командой `./build_mac.sh`.
-- **Windows:** `iActivator.exe`. Собирается на компьютере с Windows двойным щелчком по `build_windows.bat` (нужен Python с python.org). Другой способ: загрузить папку в GitHub и на вкладке Actions запустить workflow **build**. Тогда GitHub соберёт и `.exe`, и Mac‑версию.
-- На Windows для работы с iPhone нужен «Apple Devices» из Microsoft Store или iTunes.
+## How it works
 
-## Настройки и журнал
-- **Тема:** «Как в системе», «Светлая» или «Тёмная» (раздел «Настройки»).
-- **Перенос настроек:** «Настройки → Сохранить в файл…» записывает сети Wi‑Fi, язык, регион, режимы и тему в один `.json`. По желанию туда же идут пароли Wi‑Fi, ключ контролируемого режима и история устройств. На другом компьютере: «Загрузить из файла…». Пароли в файле не зашифрованы.
-- **Журнал:** у каждой записи есть время, устройство и уровень. Фильтры: основное, только ошибки, подробно (с технической информацией об ошибках). Журнал по дням сохраняется в папку `logs` в папке данных и хранится 30 дней. Кнопка «Выгрузить в файл» собирает весь журнал и историю устройств в один текстовый файл (для своего архива). Кнопка «Для отправки (без номеров)» делает то же, но скрывает серийные номера, IMEI и UDID и не включает историю — такой файл можно без опасений отправить для проверки.
+1. **Activation.** The iPhone activates through Apple's servers over the computer's internet connection, passed over USB.
+2. **Language and region.** Language, region (locale), time zone and 24-hour format are applied.
+3. **Setup screens.** A cloud configuration skips the Setup Assistant screens, as in Apple Configurator and 3uTools. With supervised mode on, Wi-Fi also installs with no taps on the phone.
+4. **Wi-Fi.** The Wi-Fi profile is installed last, once setup is finished, and the program verifies the device accepted it.
 
-## Обновления
-- При запуске программа тихо проверяет GitHub. Если вышла новая версия, вверху на вкладке «Активация» появляется строка с кнопкой «Скачать» — она открывает страницу загрузки.
-- Проверить вручную: «О программе → Проверить обновления».
-- Обновление заменяет только саму программу. История устройств и настройки лежат в отдельной папке данных и при обновлении не теряются.
+An iPhone with Activation Lock (iCloud) turned on cannot be activated by this program: the owner's Apple ID is required.
 
-## Ход активации
-- **Проверка перед запуском.** После нажатия «Запустить» открывается окно со сводкой того, что будет применено к iPhone: устройство, активация, язык, регион, часовой пояс, пропуск экранов, контролируемый режим и сеть Wi-Fi. Запуск начинается только после подтверждения (кнопка «Запустить» в окне). В режиме «Авто при подключении» окно не показывается.
-- Во время работы под карточкой «Режим» виден список шагов: активация, язык и регион, пропуск настроек, Wi-Fi. Каждый шаг отмечается галочкой (готово), крестиком (ошибка) или крутящимся значком (идёт сейчас).
-- Если задана сеть Wi-Fi, а «Контролируемый режим» выключен, над списком появляется жёлтая подсказка: сеть потребует подтверждения на самом iPhone.
-- **В PDF-отчёт** после запуска добавляется раздел «Ход активации (последний запуск)» с результатом каждого шага — так сразу видно, что именно не удалось (например, активация прошла, а профиль Wi-Fi телефон отклонил), не повторяя всю процедуру.
+### Why Wi-Fi from 3uTools sometimes does not work, and what is done here
 
-## Окно и фон
-- Окно подгоняется под размер экрана (чтобы не вылезало за края при масштабе 125–150% в Windows) и запоминает свой размер и положение.
-- **Windows:** значок в трее. Крестик сворачивает программу в трей; выход — через меню значка. Там же можно открыть окно обратно.
-- **Windows → Настройки → Запуск:** галочка «Запускать вместе с Windows» (автозапуск при включении компьютера).
-- **macOS:** пункты «Показать окно» и «Выход» в верхней строке меню.
-- На Windows программа запускает встроенный браузер экономнее (меньше расход оперативной памяти).
+| Cause | Fix here |
+|---|---|
+| The security type is hard-coded as WPA while the router runs WPA3 or WPA2/WPA3 mixed mode | `Any` is the default: iOS negotiates the protocol itself |
+| Private Wi-Fi Address (randomized MAC) is blocked by MAC filtering or a DHCP reservation | An option turns the randomized MAC off for that network |
+| After setup is skipped, the Wi-Fi radio stays off | The radio is switched on before the profile is installed |
+| The profile is installed without supervisor rights and nobody can confirm it during setup | The profile installs silently after escalation with the supervisor certificate |
+| Spaces in the SSID, or a password that is too short | Checked before anything is sent to the device |
+| The profile failed to install and the program never said so | The profile list is read back from the device after installation, with up to 3 attempts |
 
-## Важно
-- Ключ supervisor хранится в `%APPDATA%\iActivator` (Windows) или `~/Library/Application Support/iActivator` (Mac). Если его потерять, iPhone придётся стереть, прежде чем снова применять настройки.
-- Если на iPhone уже есть конфигурация от 3uTools или другого компьютера, сначала нажмите «Стереть устройство».
-- Программа **не обходит** блокировку активации iCloud (Activation Lock): она для своих или сброшенных устройств.
+## The program
 
-## Лицензия
-MIT — можно свободно пользоваться, изменять и распространять. См. файл [LICENSE](LICENSE).
+The interface opens in its own app window (WebKit on Mac, Edge WebView2 on Windows).
+
+- **Mac:** `dist/iActivator.app`. It can be moved to Applications. Build it with `./build_mac.sh`.
+- **Windows:** `iActivator.exe`. Build it on a Windows computer by double-clicking `build_windows.bat` (Python from python.org is required). Or push the folder to GitHub and run the **build** workflow from the Actions tab: GitHub builds both the `.exe` and the Mac version, and a version tag publishes them as a release.
+- On Windows, working with an iPhone requires Apple Devices from the Microsoft Store, or iTunes.
+
+## Settings, log and history
+
+- **Theme:** System, Light or Dark (in Settings).
+- **Moving settings:** Settings, then Save to file, writes your Wi-Fi networks, language, region, modes and theme into one `.json` file. Wi-Fi passwords, the supervision key and device history can go into the same file if you choose. On the other computer: Load from file. Passwords in the file are not encrypted.
+- **Log:** every entry has a time, a device and a level. Filters: main, errors only, and detailed (with technical error information). Daily logs are kept in the `logs` folder inside the data folder for 30 days. Export to file bundles the whole log and device history into one text file for your own archive. The "For sending (numbers hidden)" button does the same but hides serial numbers, IMEIs and UDIDs and leaves the history out, so the file is safe to send for review.
+- **History:** devices, what was done with them, and the results, with totals for all devices, today, activated, and with warnings. The history also sits in a spreadsheet file that opens in Excel.
+
+## Updates
+
+- On launch, the program quietly checks this repository on GitHub. If a new version is out, a bar with a Download button appears at the top of the Activation tab and opens the download page.
+- Check by hand: About, then Check for updates.
+- An update replaces only the program itself. Device history and settings live in a separate data folder and are never lost in an update.
+
+## During a run
+
+- **Review before running.** After you press Run, a window shows a summary of exactly what will be applied to the iPhone: device, activation, language, region, time zone, setup skipping, supervised mode and the Wi-Fi network. The run starts only after you confirm in that window. In Auto on connect mode the window is not shown.
+- While it works, a step list appears under the Mode card: activation, language and region, setup skipping, Wi-Fi. Each step is marked done, failed, or in progress.
+- If a Wi-Fi network is set but Supervised mode is off, a yellow note above the list warns that the network will need confirmation on the iPhone itself.
+- The PDF report gains an "Activation progress (last run)" section with the result of each step, so you can see exactly what failed (for example, activation passed but the iPhone rejected the Wi-Fi profile) without repeating the whole procedure.
+
+## Window and background
+
+- The window fits itself to the screen (so it never spills past the edges at 125% to 150% scaling on Windows) and remembers its size and position.
+- **Windows:** tray icon. The close button tucks the program into the tray; quit from the icon's menu, and reopen the window from there too.
+- **Windows, Settings, Startup:** a "Start with Windows" option for launching at sign-in.
+- **macOS:** Show window and Quit items in the top menu bar.
+- On Windows the built-in browser runs leaner, using less memory.
+
+## Good to know
+
+- The supervision key is stored in `%APPDATA%\iActivator` (Windows) or `~/Library/Application Support/iActivator` (Mac). If you lose it, the iPhone has to be erased before settings can be applied again.
+- If the iPhone already carries a configuration from 3uTools or another computer, press Erase device first.
+- This program does **not** bypass iCloud Activation Lock. It is for your own or erased devices.
+
+## FAQ
+
+**Does it bypass Activation Lock?**
+No. An iPhone linked to someone else's Apple ID has to be removed from the owner's account, at icloud.com/find or with the owner's password on the device.
+
+**Does the iPhone need Wi-Fi or a SIM to activate?**
+No. Activation uses the computer's internet connection over the USB cable.
+
+**What is supervised mode, and do I need it?**
+It lets the Wi-Fi profile install with no taps on the iPhone. The trade-off: Settings shows "This iPhone is supervised and managed by…" at the top until the device is erased. It is optional and off by default.
+
+**Where do my settings and history live?**
+In a data folder separate from the program (`%APPDATA%\iActivator` on Windows, `~/Library/Application Support/iActivator` on Mac), so updates never touch them.
+
+**Is this the original project?**
+No. This is the English edition of [iActivator by mr1garik](https://github.com/mr1garik/iActivator), translated and maintained by c12n Apps. The original author and his support links are credited in the app's About tab and in the license below.
+
+## Roadmap
+
+| | |
+|---|---|
+| **English edition upkeep** | Keep this edition in step with upstream iActivator releases, translated as they land |
+| **Refreshed screenshots** | Replace the gallery with captures of the English interface |
+| **Broader iOS coverage** | Extend the compatibility table as new iOS versions are verified on real devices |
+
+## License
+
+MIT: free to use, modify and distribute. See [LICENSE](LICENSE).
+
+This repository is an English translation of iActivator. Copyright (c) 2026 mr1garik for the original work (see LICENSE) | English edition maintained by c12n Apps.
