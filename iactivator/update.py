@@ -8,17 +8,32 @@ settings. Fails quietly when offline.
 from __future__ import annotations
 
 import json
+import ssl
 import sys
 import threading
 import urllib.request
 
-from . import __version__
+from . import __version__, applog
 
 REPO = "mr1garik/iActivator"
 _API = f"https://api.github.com/repos/{REPO}/releases/latest"
 RELEASES_PAGE = f"https://github.com/{REPO}/releases/latest"
 _lock = threading.Lock()
 _cache: dict = {}
+
+
+def _ssl_context() -> ssl.SSLContext:
+    """Verify HTTPS with the CA bundle shipped inside the app.
+
+    A packaged build (PyInstaller) has no system OpenSSL CA path, so the default
+    context fails to verify github.com and the check looks like "no internet".
+    Using certifi's bundled cacert.pem fixes that on every machine.
+    """
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        return ssl.create_default_context()
 
 
 def _ver_tuple(s: str) -> tuple:
@@ -43,7 +58,7 @@ def check(force: bool = False) -> dict:
     try:
         req = urllib.request.Request(_API, headers={
             "User-Agent": "iActivator", "Accept": "application/vnd.github+json"})
-        with urllib.request.urlopen(req, timeout=8) as r:
+        with urllib.request.urlopen(req, timeout=8, context=_ssl_context()) as r:
             data = json.load(r)
         info["latest"] = (data.get("tag_name", "") or "").lstrip("vV")
         info["page"] = data.get("html_url") or RELEASES_PAGE
@@ -52,8 +67,12 @@ def check(force: bool = False) -> dict:
             if a.get("name") == want:
                 info["download"] = a.get("browser_download_url")
         info["available"] = _ver_tuple(info.get("latest", "")) > _ver_tuple(__version__)
-    except Exception:
-        info["error"] = True  # offline, or no releases yet — just show nothing
+    except Exception as e:
+        info["error"] = True  # offline, no releases yet, or TLS/cert trouble
+        try:
+            applog.add(f"Проверка обновлений не удалась: {type(e).__name__}: {e}", level="debug")
+        except Exception:
+            pass
     with _lock:
         _cache.clear()
         _cache.update(info)
