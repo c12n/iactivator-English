@@ -8,6 +8,10 @@
 
 ## Как выглядит
 
+![Демо: активация и настройка iPhone](assets/demo.gif)
+
+Светлая и тёмная темы:
+
 <p align="center">
   <img src="assets/screenshot-light.png" width="49%" alt="Светлая тема">
   <img src="assets/screenshot-dark.png" width="49%" alt="Тёмная тема">
