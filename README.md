@@ -139,7 +139,7 @@ No. This is the English edition of [iActivator by mr1garik](https://github.com/m
 | | |
 |---|---|
 | **English edition upkeep** | Keep this edition in step with upstream iActivator releases, translated as they land |
-| **Refreshed screenshots** | Replace the gallery with captures of the English interface |
+| **Android mockup** | An APK companion mockup, with real USB detection of a cabled Apple device |
 | **Broader iOS coverage** | Extend the compatibility table as new iOS versions are verified on real devices |
 
 ## Could this be an iPhone app?
