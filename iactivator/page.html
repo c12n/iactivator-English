@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -208,31 +208,31 @@
 <aside>
   <div class="brand">
     <div class="logo"><svg><use href="#logo"/></svg></div>
-    <div><b>iActivator</b><small id="ver">версия —</small></div>
+    <div><b>iActivator</b><small id="ver">version —</small></div>
   </div>
   <nav>
-    <a data-page="activate" class="on"><svg><use href="#i-bolt"/></svg><span>Активация</span></a>
+    <a data-page="activate" class="on"><svg><use href="#i-bolt"/></svg><span>Activation</span></a>
     <a data-page="wifi"><svg><use href="#i-wifi"/></svg><span>Wi-Fi</span><span class="count" id="netCount"></span></a>
-    <a data-page="check"><svg><use href="#i-pulse"/></svg><span>Диагностика</span></a>
-    <a data-page="history"><svg><use href="#i-clock"/></svg><span>История</span><span class="count" id="histCount"></span></a>
-    <a data-page="log"><svg><use href="#i-list"/></svg><span>Журнал</span></a>
-    <a data-page="settings"><svg><use href="#i-gear"/></svg><span>Настройки</span></a>
-    <a data-page="about"><svg><use href="#i-info"/></svg><span>О программе</span></a>
+    <a data-page="check"><svg><use href="#i-pulse"/></svg><span>Diagnostics</span></a>
+    <a data-page="history"><svg><use href="#i-clock"/></svg><span>History</span><span class="count" id="histCount"></span></a>
+    <a data-page="log"><svg><use href="#i-list"/></svg><span>Log</span></a>
+    <a data-page="settings"><svg><use href="#i-gear"/></svg><span>Settings</span></a>
+    <a data-page="about"><svg><use href="#i-info"/></svg><span>About</span></a>
   </nav>
-  <div class="conn" title="Состояние подключения"><i class="dot" id="connDot"></i><span id="connText">Нет устройства</span></div>
+  <div class="conn" title="Connection status"><i class="dot" id="connDot"></i><span id="connText">No device</span></div>
 </aside>
 
 <div class="wrap">
 <main>
-  <!-- ======== Активация ======== -->
+  <!-- ======== Activation ======== -->
   <section class="page on" id="p-activate">
     <div id="updateBanner" class="updbar" style="display:none"></div>
     <div class="card">
       <div class="dev">
         <div class="phone"><svg><use href="#i-phone"/></svg></div>
-        <select id="device"><option value="">Подключите iPhone кабелем…</option></select>
-        <button class="icon" id="refresh" title="Обновить"><svg><use href="#i-refresh"/></svg></button>
-        <button class="report-btn" title="Проверить iPhone и сохранить PDF-отчёт с датой и временем"><svg><use href="#i-file"/></svg>PDF-отчёт</button>
+        <select id="device"><option value="">Connect an iPhone with a cable…</option></select>
+        <button class="icon" id="refresh" title="Refresh"><svg><use href="#i-refresh"/></svg></button>
+        <button class="report-btn" title="Check the iPhone and save a PDF report with the date and time"><svg><use href="#i-file"/></svg>PDF report</button>
       </div>
       <div id="info" class="info"></div>
       <div id="badges" class="badges"></div>
@@ -240,31 +240,31 @@
 
     <div class="grid">
       <div class="card">
-        <h2>Язык и регион</h2>
-        <div class="row"><span class="lbl">Язык</span><select id="language"></select>
-          <button id="loadLangs" title="Загрузить все языки, которые поддерживает iPhone">Все</button></div>
-        <div class="row"><span class="lbl">Регион</span><select id="region"></select></div>
-        <div class="row"><span class="lbl">Часовой пояс</span><input type="text" id="timezone" value="Europe/Kyiv">
-          <label class="mini"><input type="checkbox" id="h24" checked> 24 ч</label></div>
+        <h2>Language &amp; region</h2>
+        <div class="row"><span class="lbl">Language</span><select id="language"></select>
+          <button id="loadLangs" title="Load every language this iPhone supports">All</button></div>
+        <div class="row"><span class="lbl">Region</span><select id="region"></select></div>
+        <div class="row"><span class="lbl">Time zone</span><input type="text" id="timezone" value="America/New_York">
+          <label class="mini"><input type="checkbox" id="h24" checked> 24-hour</label></div>
         <div class="row"><span class="lbl">Wi-Fi</span><select id="quickNet"></select></div>
       </div>
 
       <div class="card">
-        <h2>Режим</h2>
-        <label class="sw"><input type="checkbox" id="activate" checked><span class="t">Активировать<small>Через серверы Apple и интернет компьютера</small></span></label>
-        <label class="sw"><input type="checkbox" id="skip" checked><span class="t">Пропустить экраны настройки<small>Только на сброшенном iPhone</small></span></label>
-        <label class="sw" title="Wi-Fi ставится без нажатий, но в Настройках вверху будет надпись «iPhone под надзором и контролем …» — убирается только стиранием"><input type="checkbox" id="supervise"><span class="t">Контролируемый режим<small>Wi-Fi без нажатий, но с надписью в Настройках</small></span></label>
-        <label class="sw" title="При подключении нового iPhone сразу запускать с текущими настройками"><input type="checkbox" id="auto"><span class="t">Авто при подключении<small>Запуск сразу, как только iPhone подключён</small></span></label>
+        <h2>Mode</h2>
+        <label class="sw"><input type="checkbox" id="activate" checked><span class="t">Activate<small>Through Apple's servers, using the computer's internet</small></span></label>
+        <label class="sw"><input type="checkbox" id="skip" checked><span class="t">Skip the setup screens<small>Only on an erased iPhone</small></span></label>
+        <label class="sw" title="Wi-Fi installs with no taps, but Settings shows 'This iPhone is supervised and managed by…' at the top. Only erasing removes it"><input type="checkbox" id="supervise"><span class="t">Supervised mode<small>Wi-Fi with no taps, but with a notice in Settings</small></span></label>
+        <label class="sw" title="Run right away with the current settings when a new iPhone is connected"><input type="checkbox" id="auto"><span class="t">Auto on connect<small>Runs as soon as an iPhone is connected</small></span></label>
       </div>
     </div>
 
     <div id="wifiHint" class="wifihint" style="display:none">
       <svg><use href="#i-alert"/></svg>
-      <span>Wi-Fi задан, но «Контролируемый режим» выключен — сеть потребует подтверждения на самом iPhone.</span>
+      <span>A Wi-Fi network is set, but Supervised mode is off, so the network will need confirmation on the iPhone itself.</span>
     </div>
 
     <div class="card" id="stepsCard" style="display:none">
-      <h2>Активация</h2>
+      <h2>Activation</h2>
       <div id="steps" class="steps"></div>
     </div>
   </section>
@@ -273,178 +273,178 @@
   <section class="page" id="p-wifi">
     <h1>Wi-Fi</h1>
     <div class="card">
-      <div class="row"><span class="lbl">Сохранённые</span>
-        <select id="saved"><option value="">— новая сеть —</option></select>
-        <button id="saveNet">Сохранить</button>
-        <button id="delNet" class="icon ghost-danger" title="Удалить сохранённую сеть"><svg><use href="#i-trash"/></svg></button></div>
+      <div class="row"><span class="lbl">Saved</span>
+        <select id="saved"><option value="">— new network —</option></select>
+        <button id="saveNet">Save</button>
+        <button id="delNet" class="icon ghost-danger" title="Delete the saved network"><svg><use href="#i-trash"/></svg></button></div>
       <div class="sep"></div>
-      <div class="row"><span class="lbl">Сеть (SSID)</span><input type="text" id="ssid" autocomplete="off" placeholder="не ставить Wi-Fi"></div>
-      <div class="row"><span class="lbl">Пароль</span><input type="password" id="password" autocomplete="off">
-        <label class="mini"><input type="checkbox" id="showPass"> показать</label></div>
-      <div class="row"><span class="lbl">Защита</span><select id="security"></select></div>
+      <div class="row"><span class="lbl">Network (SSID)</span><input type="text" id="ssid" autocomplete="off" placeholder="leave blank for no Wi-Fi"></div>
+      <div class="row"><span class="lbl">Password</span><input type="password" id="password" autocomplete="off">
+        <label class="mini"><input type="checkbox" id="showPass"> show</label></div>
+      <div class="row"><span class="lbl">Security</span><select id="security"></select></div>
       <div class="row"><span class="lbl"></span>
-        <label class="mini"><input type="checkbox" id="hidden"> Скрытая сеть</label>
-        <label class="mini" style="margin-left:14px"><input type="checkbox" id="nomac" checked> Без «частного адреса»</label></div>
+        <label class="mini"><input type="checkbox" id="hidden"> Hidden network</label>
+        <label class="mini" style="margin-left:14px"><input type="checkbox" id="nomac" checked> No private address</label></div>
       <div class="sep"></div>
       <div class="row" style="justify-content:space-between">
-        <span class="hint" style="margin:0">Пароли хранятся в системной связке ключей.</span>
-        <button id="wifiOnly"><svg><use href="#i-wifi"/></svg>Установить только Wi-Fi</button>
+        <span class="hint" style="margin:0">Passwords are stored in the system keychain.</span>
+        <button id="wifiOnly"><svg><use href="#i-wifi"/></svg>Install Wi-Fi only</button>
       </div>
     </div>
   </section>
 
-  <!-- ======== Диагностика ======== -->
+  <!-- ======== Diagnostics ======== -->
   <section class="page" id="p-check">
-    <h1>Диагностика</h1>
+    <h1>Diagnostics</h1>
     <div class="card">
-      <h2><span class="sp">Проверка на неисправности</span><button id="check"><svg><use href="#i-pulse"/></svg>Проверить</button>
-        <button class="report-btn" title="Проверить iPhone и сохранить PDF-отчёт с датой и временем"><svg><use href="#i-file"/></svg>PDF-отчёт</button></h2>
-      <div id="checkResults" class="empty">Батарея, зарядка, Wi-Fi, Bluetooth, модем, память, журналы сбоев за 30 дней, Локатор и MDM. iPhone должен быть разблокирован.</div>
+      <h2><span class="sp">Fault check</span><button id="check"><svg><use href="#i-pulse"/></svg>Run check</button>
+        <button class="report-btn" title="Check the iPhone and save a PDF report with the date and time"><svg><use href="#i-file"/></svg>PDF report</button></h2>
+      <div id="checkResults" class="empty">Battery, charging, Wi-Fi, Bluetooth, modem, storage, crash logs from the last 30 days, Find My and MDM. The iPhone must be unlocked.</div>
     </div>
     <div class="card">
-      <h2>Опасная зона</h2>
+      <h2>Danger zone</h2>
       <div class="row" style="justify-content:space-between">
-        <span class="hint" style="margin:0">Стирает все данные и сбрасывает iPhone к заводским настройкам.</span>
-        <button class="ghost-danger" id="erase"><svg><use href="#i-trash"/></svg>Стереть iPhone…</button>
+        <span class="hint" style="margin:0">Erases all data and resets the iPhone to factory settings.</span>
+        <button class="ghost-danger" id="erase"><svg><use href="#i-trash"/></svg>Erase iPhone…</button>
       </div>
     </div>
   </section>
 
-  <!-- ======== История ======== -->
+  <!-- ======== History ======== -->
   <section class="page" id="p-history">
-    <h1>История</h1>
+    <h1>History</h1>
     <div class="stats">
-      <div class="stat"><b id="sTotal">0</b><span>Всего устройств</span></div>
-      <div class="stat"><b id="sToday">0</b><span>Сегодня</span></div>
-      <div class="stat"><b id="sActivated">0</b><span>Активировано</span></div>
-      <div class="stat"><b id="sFaulty">0</b><span>С замечаниями</span></div>
+      <div class="stat"><b id="sTotal">0</b><span>Total devices</span></div>
+      <div class="stat"><b id="sToday">0</b><span>Today</span></div>
+      <div class="stat"><b id="sActivated">0</b><span>Activated</span></div>
+      <div class="stat"><b id="sFaulty">0</b><span>With warnings</span></div>
     </div>
     <div class="card">
       <div class="row" style="margin-top:0">
-        <input type="text" id="histSearch" placeholder="Поиск по серийному номеру, IMEI или модели">
-        <button id="histOpen" title="Файл со всей историей — открывается в Excel"><svg><use href="#i-folder"/></svg>Открыть файл</button>
-        <button id="reportsOpen" title="Папка с PDF-отчётами"><svg><use href="#i-file"/></svg>Отчёты</button>
+        <input type="text" id="histSearch" placeholder="Search by serial number, IMEI, or model">
+        <button id="histOpen" title="The full history file, opens in Excel"><svg><use href="#i-folder"/></svg>Open file</button>
+        <button id="reportsOpen" title="The folder with the PDF reports"><svg><use href="#i-file"/></svg>Reports</button>
       </div>
       <table>
-        <thead><tr><th>Модель</th><th>Серийный №</th><th>IMEI</th><th>Последнее действие</th></tr></thead>
+        <thead><tr><th>Model</th><th>Serial No.</th><th>IMEI</th><th>Last action</th></tr></thead>
         <tbody id="histBody"></tbody>
       </table>
-      <div id="histEmpty" class="empty" style="padding:10px 8px">Пока пусто — устройства появятся здесь после подключения.</div>
+      <div id="histEmpty" class="empty" style="padding:10px 8px">Nothing here yet. Devices appear here after they are connected.</div>
     </div>
   </section>
 
-  <!-- ======== Журнал ======== -->
+  <!-- ======== Log ======== -->
   <section class="page" id="p-log">
-    <h1>Журнал</h1>
+    <h1>Log</h1>
     <div class="card">
       <div class="tools">
-        <select id="logLevel" title="Какие записи показывать">
-          <option value="main">Основное</option>
-          <option value="problems">Только ошибки и замечания</option>
-          <option value="debug">Подробно (с технической информацией)</option>
+        <select id="logLevel" title="Which entries to show">
+          <option value="main">Main</option>
+          <option value="problems">Errors and warnings only</option>
+          <option value="debug">Detailed (with technical information)</option>
         </select>
-        <input type="text" id="logSearch" placeholder="Поиск по тексту или серийному номеру">
-        <button class="icon" id="logCopy" title="Скопировать показанные записи"><svg><use href="#i-copy"/></svg></button>
-        <button id="logFolder" title="Журналы по дням хранятся 30 дней"><svg><use href="#i-folder"/></svg>Файлы журнала</button>
-        <button id="logExport" title="Весь журнал и история в одном файле — для своего архива (видны серийные номера и IMEI)"><svg><use href="#i-download"/></svg>Выгрузить в файл</button>
-        <button id="logSend" title="То же, но серийные номера и IMEI скрыты — можно без опасений отправить для проверки"><svg><use href="#i-upload"/></svg>Для отправки (без номеров)</button>
+        <input type="text" id="logSearch" placeholder="Search by text or serial number">
+        <button class="icon" id="logCopy" title="Copy the entries shown"><svg><use href="#i-copy"/></svg></button>
+        <button id="logFolder" title="Daily logs are kept for 30 days"><svg><use href="#i-folder"/></svg>Log files</button>
+        <button id="logExport" title="The whole log and history in one file, for your own archive (serial numbers and IMEIs are visible)"><svg><use href="#i-download"/></svg>Export to file</button>
+        <button id="logSend" title="The same, but with serial numbers and IMEIs hidden, so it is safe to send for review"><svg><use href="#i-upload"/></svg>For sending (numbers hidden)</button>
       </div>
       <div id="log"></div>
-      <div id="logEmpty" class="empty">Журнал пуст</div>
+      <div id="logEmpty" class="empty">The log is empty</div>
     </div>
   </section>
 
-  <!-- ======== Настройки ======== -->
+  <!-- ======== Settings ======== -->
   <section class="page" id="p-settings">
-    <h1>Настройки</h1>
+    <h1>Settings</h1>
     <div class="card">
-      <h2>Оформление</h2>
-      <div class="row"><span class="lbl">Тема</span>
+      <h2>Appearance</h2>
+      <div class="row"><span class="lbl">Theme</span>
         <div class="seg" id="theme">
-          <button data-theme="auto">Как в системе</button><button data-theme="light">Светлая</button><button data-theme="dark">Тёмная</button>
+          <button data-theme="auto">System</button><button data-theme="light">Light</button><button data-theme="dark">Dark</button>
         </div></div>
     </div>
     <div class="card" id="startupCard" style="display:none">
-      <h2>Запуск</h2>
-      <label class="sw"><input type="checkbox" id="autostart"><span class="t">Запускать вместе с Windows<small>Программа откроется сама при включении компьютера</small></span></label>
+      <h2>Startup</h2>
+      <label class="sw"><input type="checkbox" id="autostart"><span class="t">Start with Windows<small>The program opens by itself when the computer turns on</small></span></label>
     </div>
     <div class="card">
-      <h2>Перенос настроек</h2>
-      <p class="hint" style="margin-top:0">Сохраните настройки в файл и загрузите его на другом компьютере или после переустановки:
-        сети Wi-Fi, язык, регион, режимы и тему.</p>
-      <label class="sw"><input type="checkbox" id="expSecrets" checked><span class="t">Пароли Wi-Fi и ключ контролируемого режима
-        <small>Пароли в файле не зашифрованы — храните его как пароль</small></span></label>
-      <label class="sw"><input type="checkbox" id="expHistory"><span class="t">История устройств<small>Серийные номера, IMEI и все действия</small></span></label>
+      <h2>Move your settings</h2>
+      <p class="hint" style="margin-top:0">Save your settings to a file and load it on another computer, or after a reinstall:
+        Wi-Fi networks, language, region, modes, and theme.</p>
+      <label class="sw"><input type="checkbox" id="expSecrets" checked><span class="t">Wi-Fi passwords and the supervision key
+        <small>Passwords in the file are not encrypted. Guard it like a password</small></span></label>
+      <label class="sw"><input type="checkbox" id="expHistory"><span class="t">Device history<small>Serial numbers, IMEIs, and every action</small></span></label>
       <div class="sep"></div>
       <div class="row" style="gap:8px">
-        <button id="exportBtn"><svg><use href="#i-download"/></svg>Сохранить в файл…</button>
-        <button id="importBtn"><svg><use href="#i-upload"/></svg>Загрузить из файла…</button>
+        <button id="exportBtn"><svg><use href="#i-download"/></svg>Save to file…</button>
+        <button id="importBtn"><svg><use href="#i-upload"/></svg>Load from file…</button>
         <input type="file" id="importFile" accept=".json,application/json" style="display:none">
       </div>
       <div id="transferResult" class="hint"></div>
     </div>
   </section>
 
-  <!-- ======== О программе ======== -->
+  <!-- ======== About ======== -->
   <section class="page about" id="p-about">
-    <h1>О программе</h1>
+    <h1>About</h1>
     <div class="card">
       <div class="hero">
         <div class="logo"><svg><use href="#logo"/></svg></div>
-        <div><b>iActivator</b><span id="aboutVer">Версия —</span></div>
-        <button id="checkUpd" style="margin-left:auto"><svg><use href="#i-refresh"/></svg>Проверить обновления</button>
+        <div><b>iActivator</b><span id="aboutVer">Version —</span></div>
+        <button id="checkUpd" style="margin-left:auto"><svg><use href="#i-refresh"/></svg>Check for updates</button>
       </div>
       <div id="updResult" class="hint" style="margin-top:10px"></div>
     </div>
     <div class="grid">
       <div class="card">
-        <h2>Возможности</h2>
+        <h2>Features</h2>
         <ul class="feat">
-          <li>Активация iPhone через интернет компьютера</li>
-          <li>Любой язык и регион, включая Украину</li>
-          <li>Пропуск экранов настройки</li>
-          <li>Wi-Fi профилем с проверкой установки</li>
-          <li>Проверка Локатора, MDM и неисправностей</li>
+          <li>iPhone activation using the computer's internet</li>
+          <li>Any language and region, English (US) by default</li>
+          <li>Setup screen skipping</li>
+          <li>Wi-Fi by profile, with installation verified</li>
+          <li>Find My, MDM, and fault checks</li>
         </ul>
       </div>
       <div class="card">
-        <h2>Сведения</h2>
+        <h2>Details</h2>
         <dl id="aboutInfo"></dl>
         <div class="sep"></div>
-        <button id="openData"><svg><use href="#i-folder"/></svg>Открыть папку данных</button>
+        <button id="openData"><svg><use href="#i-folder"/></svg>Open the data folder</button>
       </div>
     </div>
     <div class="card">
-      <h2>Автор и поддержка проекта</h2>
+      <h2>Original author &amp; project support</h2>
       <div class="row" style="justify-content:space-between">
-        <span>Новости, вопросы и предложения — в Instagram</span>
+        <span>News, questions, and suggestions from the original author, on Instagram</span>
         <button id="insta"><svg><use href="#i-insta"/></svg>Instagram</button>
       </div>
       <div id="wallets"></div>
     </div>
-    <p class="hint" style="margin-top:14px">Программа не обходит Блокировку активации: iPhone, привязанный к чужому Apple ID, нужно снять с аккаунта владельца.</p>
+    <p class="hint" style="margin-top:14px">This program does not bypass Activation Lock: an iPhone linked to someone else's Apple ID has to be removed from the owner's account.</p>
   </section>
 </main>
 
 <div class="bar" id="bar">
-  <button class="primary" id="start"><svg><use href="#i-play"/></svg>Запустить</button>
+  <button class="primary" id="start"><svg><use href="#i-play"/></svg>Run</button>
   <i class="spin"></i>
-  <div class="status" id="status" title="Открыть журнал">Готово</div>
+  <div class="status" id="status" title="Open the log">Ready</div>
 </div>
 </div>
 
 <div class="modal" id="preview">
   <div class="box">
-    <h3>Проверьте перед запуском</h3>
-    <p class="sub">Эти настройки будут применены к подключённому iPhone. Данные устройства не стираются.</p>
+    <h3>Review before you run</h3>
+    <p class="sub">These settings will be applied to the connected iPhone. The device's data is not erased.</p>
     <div class="plist" id="previewList"></div>
     <div id="previewWarn" class="wifihint" style="display:none;margin:14px 0 0">
       <svg><use href="#i-alert"/></svg>
-      <span>«Контролируемый режим» выключен — сеть Wi-Fi потребует подтверждения на самом iPhone.</span>
+      <span>Supervised mode is off, so the Wi-Fi network will need confirmation on the iPhone itself.</span>
     </div>
     <div class="foot">
-      <button id="previewCancel">Отмена</button>
-      <button class="primary" id="previewOk"><svg><use href="#i-play"/></svg>Запустить</button>
+      <button id="previewCancel">Cancel</button>
+      <button class="primary" id="previewOk"><svg><use href="#i-play"/></svg>Run</button>
     </div>
   </div>
 </div>
@@ -493,7 +493,7 @@ function renderLog(fresh) {
   if (fresh) box.insertAdjacentHTML("beforeend", fresh.filter(logVisible).map(logRow).join(""));
   else box.innerHTML = logEntries.filter(logVisible).slice(-3000).map(logRow).join("");
   $("logEmpty").style.display = box.children.length ? "none" : "";
-  $("logEmpty").textContent = logEntries.length ? "Нет записей по этому фильтру" : "Журнал пуст";
+  $("logEmpty").textContent = logEntries.length ? "No entries match this filter" : "The log is empty";
   if (atEnd || !fresh) box.scrollTop = box.scrollHeight;
 }
 $("logLevel").onchange = () => renderLog();
@@ -505,13 +505,13 @@ async function exportLog(btnId, body) {
   try {
     const res = await api("/api/logs/export", body);
     if (res.error) alert(res.error);
-    else if (res.path) addLog("✅ Журнал выгружен в файл: " + res.path);
+    else if (res.path) addLog("✅ Log exported to a file: " + res.path);
   } finally { b.disabled = false; }
 }
 $("logExport").onclick = () => exportLog("logExport", { history: true });
 $("logSend").onclick = () => exportLog("logSend", { history: false, redact: true });
 $("logCopy").onclick = () => copyText(logEntries.filter(logVisible)
-  .map(e => `${e.time}  ${e.serial || "-"}  ${e.text}`).join("\n"), "Записи журнала скопированы");
+  .map(e => `${e.time}  ${e.serial || "-"}  ${e.text}`).join("\n"), "Log entries copied");
 function copyText(text, done) {
   const ta = document.createElement("textarea");
   ta.value = text; document.body.appendChild(ta); ta.select();
@@ -531,7 +531,7 @@ const dot = s => `<i class="st ${s}"></i>`;
 // ---------- devices ----------
 function setConn(label) {
   $("connDot").classList.toggle("on", !!label);
-  $("connText").textContent = label || "Нет устройства";
+  $("connText").textContent = label || "No device";
 }
 async function pollDevices(full) {
   let res;
@@ -541,11 +541,11 @@ async function pollDevices(full) {
   const fresh = res.find(d => !known.has(d.serial));
   known = new Set(res.map(d => d.serial));
   if (!res.length) {
-    fill($("device"), [["Подключите iPhone кабелем…", ""]]);
+    fill($("device"), [["Connect an iPhone with a cable…", ""]]);
     setConn("");
     if (cur) {
       $("info").innerHTML = ""; $("badges").innerHTML = ""; info = null;
-      api("/api/journal", { text: "iPhone отключён", serial: cur }).catch(() => {});
+      api("/api/journal", { text: "iPhone disconnected", serial: cur }).catch(() => {});
     }
     return;
   }
@@ -558,47 +558,47 @@ async function pollDevices(full) {
 async function onDevice(isNew) {
   const serial = $("device").value;
   if (!serial) return;
-  if (isNew) addLog("Подключено устройство, читаю данные…", "debug");
+  if (isNew) addLog("Device connected, reading its data…", "debug");
   $("checkResults").className = "empty";
-  $("checkResults").textContent = "Нажмите «Проверить».";
+  $("checkResults").textContent = "Tap \"Run check\"."
   await loadInfo(isNew);
   const locks = await loadLocks(isNew);
   loadHistory();
-  if (isNew) addLog("Данные устройства прочитаны", "debug");
+  if (isNew) addLog("Device data read", "debug");
   if (isNew && $("auto").checked && info && info.activation === "Unactivated") {
-    if (locks.some(r => r.status === "bad")) addLog("⛔ Авто-режим остановлен: устройство заблокировано", "error");
-    else { addLog("Авто-режим: запускаю активацию"); job("/api/run", form()); }
+    if (locks.some(r => r.status === "bad")) addLog("⛔ Auto mode stopped: the device is locked", "error");
+    else { addLog("Auto mode: starting activation"); job("/api/run", form()); }
   }
 }
 
 async function loadInfo(record) {
   const box = $("info");
-  box.innerHTML = '<div class="empty">Читаю данные…</div>';
+  box.innerHTML = '<div class="empty">Reading data…</div>';
   const d = await api("/api/info", { serial: $("device").value, record: !!record });
-  if (d.error) { box.innerHTML = `<div class="empty">Не удалось прочитать: ${esc(d.error)}</div>`; info = null; return; }
+  if (d.error) { box.innerHTML = `<div class="empty">Could not read: ${esc(d.error)}</div>`; info = null; return; }
   info = d;
-  const act = d.activation === "Activated" ? '<span class="good">Активирован</span>'
-            : d.activation === "Unactivated" ? '<span class="warn">Не активирован</span>' : esc(d.activation);
-  const items = [["Модель", esc(d.model_name + (d.capacity ? ", " + d.capacity : ""))], ["iOS", esc(d.ios && `${d.ios} (${d.build})`)], ["Серийный №", esc(d.serial)],
-                 ["IMEI", esc(d.imei)], ["Активация", act]];
+  const act = d.activation === "Activated" ? '<span class="good">Activated</span>'
+            : d.activation === "Unactivated" ? '<span class="warn">Not activated</span>' : esc(d.activation);
+  const items = [["Model", esc(d.model_name + (d.capacity ? ", " + d.capacity : ""))], ["iOS", esc(d.ios && `${d.ios} (${d.build})`)], ["Serial No.", esc(d.serial)],
+                 ["IMEI", esc(d.imei)], ["Activation", act]];
   if (d.imei2) items.splice(4, 0, ["IMEI 2", esc(d.imei2)]);
   const b = d.battery;
   if (b) {
     if (b.health != null) {
       const cls = b.health >= 85 ? "good" : b.health >= 80 ? "warn" : "bad";
-      items.push(["Ёмкость батареи", `<span class="${cls}">${b.health}%</span> · ${b.full_mah}/${b.design_mah} мАч`]);
+      items.push(["Battery health", `<span class="${cls}">${b.health}%</span> · ${b.full_mah}/${b.design_mah} mAh`]);
     }
-    if (b.level != null) items.push(["Заряд", `${b.level}%${b.charging ? " ⚡" : ""}`]);
-    if (b.cycles != null) items.push(["Циклы", esc(b.cycles)]);
+    if (b.level != null) items.push(["Charge", `${b.level}%${b.charging ? " ⚡" : ""}`]);
+    if (b.cycles != null) items.push(["Cycles", esc(b.cycles)]);
   }
   box.innerHTML = items.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join("");
 }
 
 async function loadLocks(record) {
   const box = $("badges");
-  box.innerHTML = '<div class="empty">Проверяю Локатор и MDM…</div>';
+  box.innerHTML = '<div class="empty">Checking Find My and MDM…</div>';
   const res = await api("/api/locks", { serial: $("device").value, record: !!record });
-  if (res.error) { box.innerHTML = `<div class="empty">Локатор/MDM: ${esc(res.error)}</div>`; return []; }
+  if (res.error) { box.innerHTML = `<div class="empty">Find My/MDM: ${esc(res.error)}</div>`; return []; }
   box.innerHTML = res.map(r => `<div class="badge">${dot(r.status)}<div><b>${esc(r.name)}</b><small>${esc(r.detail)}</small></div></div>`).join("");
   return res;
 }
@@ -606,10 +606,10 @@ async function loadLocks(record) {
 // ---------- settings ----------
 function fillNets() {
   const cur = $("saved").value;
-  fill($("saved"), [["— новая сеть —", ""], ...networks.map(n => [n.ssid, n.ssid])], cur);
-  fill($("quickNet"), [["Не ставить", ""], ...networks.map(n => [n.ssid, n.ssid])], $("ssid").value.trim());
+  fill($("saved"), [["— new network —", ""], ...networks.map(n => [n.ssid, n.ssid])], cur);
+  fill($("quickNet"), [["Do not install", ""], ...networks.map(n => [n.ssid, n.ssid])], $("ssid").value.trim());
   if ($("ssid").value.trim() && !networks.some(n => n.ssid === $("ssid").value.trim()))
-    fill($("quickNet"), [["Не ставить", ""], [$("ssid").value.trim() + " (не сохранена)", $("ssid").value.trim()],
+    fill($("quickNet"), [["Do not install", ""], [$("ssid").value.trim() + " (not saved)", $("ssid").value.trim()],
                          ...networks.map(n => [n.ssid, n.ssid])], $("ssid").value.trim());
   $("netCount").textContent = networks.length || "";
 }
@@ -659,8 +659,8 @@ async function checkUpdate(force) {
     if (u && u.available) {
       $("updateBanner").style.display = "";
       $("updateBanner").innerHTML = `<svg><use href="#i-download"/></svg>`
-        + `<span>Доступна новая версия ${esc(u.latest)} (у вас ${esc(u.current)}). История и настройки сохранятся.</span>`
-        + `<button id="updGet">Скачать</button>`;
+        + `<span>A new version, ${esc(u.latest)}, is available (you have ${esc(u.current)}). Your history and settings are kept.</span>`
+        + `<button id="updGet">Download</button>`;
       $("updGet").onclick = () => api("/api/update/open", {});
     } else {
       $("updateBanner").style.display = "none";
@@ -690,7 +690,7 @@ function renderSteps(steps) {
 
 // ---------- actions ----------
 function needDevice() {
-  if (!$("device").value) { alert("Подключите iPhone кабелем."); return false; }
+  if (!$("device").value) { alert("Connect an iPhone with a cable."); return false; }
   return true;
 }
 async function job(path, body) {
@@ -707,14 +707,14 @@ function showPreview() {
   const ssid = (f.ssid || "").trim();
   const sec = ssid ? selText("security") : "";
   const rows = [
-    ["Устройство", esc($("device").selectedOptions[0]?.textContent || "—"), true],
-    ["Активировать", f.activate ? "Да — через серверы Apple" : "Нет", f.activate],
-    ["Язык", esc(selText("language")), true],
-    ["Регион", esc(selText("region")), true],
-    ["Часовой пояс", esc(f.timezone || "—") + (f.h24 ? ", 24 ч" : ", 12 ч"), true],
-    ["Пропустить экраны настройки", f.skip_setup ? "Да" : "Нет", f.skip_setup],
-    ["Контролируемый режим", f.supervise ? "Да" : "Нет", f.supervise],
-    ["Wi-Fi", ssid ? `«${esc(ssid)}» · ${esc(sec)}` : "Не устанавливать", !!ssid],
+    ["Device", esc($("device").selectedOptions[0]?.textContent || "—"), true],
+    ["Activate", f.activate ? "Yes, through Apple's servers" : "No", f.activate],
+    ["Language", esc(selText("language")), true],
+    ["Region", esc(selText("region")), true],
+    ["Time zone", esc(f.timezone || "—") + (f.h24 ? ", 24-hour" : ", 12-hour"), true],
+    ["Skip the setup screens", f.skip_setup ? "Yes" : "No", f.skip_setup],
+    ["Supervised mode", f.supervise ? "Yes" : "No", f.supervise],
+    ["Wi-Fi", ssid ? `\"${esc(ssid)}\" · ${esc(sec)}` : "Do not install", !!ssid],
   ];
   $("previewList").innerHTML = rows.map(([k, v, on]) =>
     `<div class="r"><span class="k">${k}</span><span class="v${on ? "" : " off"}">${v}</span></div>`).join("");
@@ -731,7 +731,7 @@ async function runCheck() {
   if (!needDevice()) return;
   const box = $("checkResults");
   $("check").disabled = true;
-  box.className = "empty"; box.textContent = "Проверяю… (до минуты)";
+  box.className = "empty"; box.textContent = "Checking… (up to a minute)";
   try {
     const res = await api("/api/check", { serial: $("device").value });
     loadHistory();
@@ -739,7 +739,7 @@ async function runCheck() {
     const bad = res.filter(r => r.status === "bad").length, warn = res.filter(r => r.status === "warn").length;
     box.className = "";
     box.innerHTML = `<div class="summary ${bad ? "bad" : warn ? "warn" : "good"}">${
-      bad ? `Найдены неисправности: ${bad}` : warn ? `Есть замечания: ${warn}` : "Неисправностей не найдено"}</div>
+      bad ? `Faults found: ${bad}` : warn ? `Warnings: ${warn}` : "No faults found"}</div>
       <div class="results">${res.map(r => `<div class="item">${dot(r.status)}<div><b>${esc(r.name)}</b><small>${esc(r.detail)}</small></div></div>`).join("")}</div>`;
   } finally { $("check").disabled = false; }
 }
@@ -759,19 +759,19 @@ function renderHistory() {
   const q = $("histSearch").value.trim().toLowerCase();
   const list = hist.devices.filter(d => !q || [d.serial, d.id, d.imei, d.imei2, d.model, d.name].some(v => v && v.toLowerCase().includes(q)));
   $("histEmpty").style.display = list.length ? "none" : "";
-  $("histEmpty").textContent = hist.devices.length ? "Ничего не найдено" : "Пока пусто — устройства появятся здесь после подключения.";
+  $("histEmpty").textContent = hist.devices.length ? "Nothing found" : "Nothing here yet. Devices appear here after they are connected.";
   $("histBody").innerHTML = list.map(d => {
     const key = d.id || d.serial;
     const last = d.events[d.events.length - 1];
     const row = `<tr class="dev-row" data-key="${esc(key)}">
-      <td><b>${esc(d.model_name || d.model || "—")}</b>${d.capacity ? " · " + esc(d.capacity) : ""}<br><small class="empty">iOS ${esc(d.ios || "—")}${d.battery != null ? " · батарея " + d.battery + "%" : ""}</small></td>
+      <td><b>${esc(d.model_name || d.model || "—")}</b>${d.capacity ? " · " + esc(d.capacity) : ""}<br><small class="empty">iOS ${esc(d.ios || "—")}${d.battery != null ? " · battery " + d.battery + "%" : ""}</small></td>
       <td class="mono">${esc(d.serial || d.id)}</td>
       <td class="mono">${esc(d.imei)}${d.imei2 ? "<br>" + esc(d.imei2) : ""}</td>
-      <td>${last ? `<div style="display:flex;gap:8px">${dot(RES[last.result])}<div><b>${esc(last.action)}</b><br><small class="empty">${esc(last.time)} · событий: ${d.events.length}</small></div></div>` : "—"}</td></tr>`;
+      <td>${last ? `<div style="display:flex;gap:8px">${dot(RES[last.result])}<div><b>${esc(last.action)}</b><br><small class="empty">${esc(last.time)} · events: ${d.events.length}</small></div></div>` : "—"}</td></tr>`;
     if (openRow !== key) return row;
     const evs = [...d.events].reverse().map(e => `<div class="ev"><time>${esc(e.time)}</time>${dot(RES[e.result])}<b>${esc(e.action)}</b><small>${esc(e.detail || "")}</small></div>`).join("");
-    return row + `<tr class="events"><td colspan="4">${evs || '<span class="empty">Событий нет</span>'}
-      <div style="text-align:right;margin-top:6px"><button class="ghost-danger" data-del="${esc(key)}">Удалить из истории</button></div></td></tr>`;
+    return row + `<tr class="events"><td colspan="4">${evs || '<span class="empty">No events</span>'}
+      <div style="text-align:right;margin-top:6px"><button class="ghost-danger" data-del="${esc(key)}">Delete from history</button></div></td></tr>`;
   }).join("");
 }
 $("histSearch").oninput = renderHistory;
@@ -781,7 +781,7 @@ async function makeReport() {
   if (!needDevice()) return;
   const btns = document.querySelectorAll(".report-btn");
   btns.forEach(b => b.disabled = true);
-  addLog("Готовлю PDF-отчёт: проверяю iPhone… (до минуты)");
+  addLog("Preparing the PDF report: checking the iPhone… (up to a minute)");
   try {
     const res = await api("/api/report", { serial: $("device").value });
     if (res.error) alert(res.error);
@@ -792,7 +792,7 @@ document.querySelectorAll(".report-btn").forEach(b => b.onclick = makeReport);
 $("histBody").onclick = async e => {
   const del = e.target.closest("[data-del]");
   if (del) {
-    if (!confirm(`Удалить устройство ${del.dataset.del} из истории?`)) return;
+    if (!confirm(`Delete device ${del.dataset.del} from history?`)) return;
     await api("/api/history/delete", { serial: del.dataset.del });
     openRow = null; return loadHistory();
   }
@@ -834,7 +834,7 @@ $("exportBtn").onclick = async () => {
   $("exportBtn").disabled = true;
   try {
     const res = await api("/api/settings/export", { secrets: $("expSecrets").checked, history: $("expHistory").checked });
-    $("transferResult").textContent = res.error ? "❌ " + res.error : res.path ? "Сохранено: " + res.path : "";
+    $("transferResult").textContent = res.error ? "❌ " + res.error : res.path ? "Saved: " + res.path : "";
   } finally { $("exportBtn").disabled = false; }
 };
 $("importBtn").onclick = () => { $("importFile").value = ""; $("importFile").click(); };
@@ -842,10 +842,10 @@ $("importFile").onchange = async () => {
   const f = $("importFile").files[0];
   if (!f) return;
   let data;
-  try { data = JSON.parse(await f.text()); } catch { return alert("Файл не читается: это не файл настроек iActivator."); }
+  try { data = JSON.parse(await f.text()); } catch { return alert("The file cannot be read: it is not an iActivator settings file."); }
   const res = await api("/api/settings/import", { data, name: f.name });
   if (res.error) { $("transferResult").textContent = "❌ " + res.error; return alert(res.error); }
-  $("transferResult").textContent = "Загружено: " + res.done.join(", ");
+  $("transferResult").textContent = "Loaded: " + res.done.join(", ");
   await loadSettings(true);
   loadHistory();
 };
@@ -853,26 +853,26 @@ $("importFile").onchange = async () => {
 // ---------- support ----------
 function showSupport(a) {
   $("insta").onclick = () => api("/api/open-url", { url: a.instagram });
-  $("wallets").innerHTML = a.wallets.length ? `<p class="hint">Поддержать проект криптовалютой:</p>` + a.wallets.map(([name, addr], i) =>
+  $("wallets").innerHTML = a.wallets.length ? `<p class="hint">Support the original project with crypto:</p>` + a.wallets.map(([name, addr], i) =>
     `<div class="wallet"><b>${esc(name)}</b><code title="${esc(addr)}">${esc(addr)}</code>
-     <button class="icon" data-wallet="${i}" title="Скопировать адрес"><svg><use href="#i-copy"/></svg></button></div>`).join("") : "";
+     <button class="icon" data-wallet="${i}" title="Copy the address"><svg><use href="#i-copy"/></svg></button></div>`).join("") : "";
   $("wallets").onclick = e => {
     const b = e.target.closest("[data-wallet]");
-    if (b) copyText(a.wallets[b.dataset.wallet][1], `Адрес ${a.wallets[b.dataset.wallet][0]} скопирован`);
+    if (b) copyText(a.wallets[b.dataset.wallet][1], `The ${a.wallets[b.dataset.wallet][0]} address was copied`);
   };
 }
 
 async function init() {
   const meta = await api("/api/meta");
-  fill($("language"), meta.languages.map(([n, c]) => [n, c]), "uk");
+  fill($("language"), meta.languages.map(([n, c]) => [n, c]), "en");
   regions = meta.regions;
-  fill($("region"), regions.map(([n, c]) => [n, c]), "UA");
+  fill($("region"), regions.map(([n, c]) => [n, c]), "US");
   fill($("security"), meta.security, "Any");
   const a = meta.about;
-  $("ver").textContent = "версия " + a.version;
-  $("aboutVer").textContent = "Версия " + a.version + " · активация и настройка iPhone";
-  $("aboutInfo").innerHTML = [["Версия", a.version], ["Система", a.system], ["Python", a.python],
-    ["pymobiledevice3", a.pymobiledevice3], ["Папка данных", a.data_dir]]
+  $("ver").textContent = "version " + a.version;
+  $("aboutVer").textContent = "Version " + a.version + " · iPhone activation and setup";
+  $("aboutInfo").innerHTML = [["Version", a.version], ["System", a.system], ["Python", a.python],
+    ["pymobiledevice3", a.pymobiledevice3], ["Data folder", a.data_dir]]
     .map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("");
   showSupport(a);
   if (a.autostart_supported) {
@@ -901,11 +901,11 @@ $("start").onclick = start;
 $("status").onclick = () => show("log");
 $("openData").onclick = () => api("/api/open-data", {});
 $("checkUpd").onclick = async () => {
-  $("updResult").textContent = "Проверяю…";
+  $("updResult").textContent = "Checking…";
   const u = await checkUpdate(true);
-  if (!u || u.error) $("updResult").textContent = "Не удалось проверить (нет интернета?).";
-  else if (u.available) $("updResult").innerHTML = `Есть новая версия ${esc(u.latest)} — кнопка «Скачать» вверху на вкладке «Активация».`;
-  else $("updResult").textContent = "У вас последняя версия.";
+  if (!u || u.error) $("updResult").textContent = "Could not check (no internet?).";
+  else if (u.available) $("updResult").innerHTML = `Version ${esc(u.latest)} is available. Use the Download button at the top of the Activation tab.`;
+  else $("updResult").textContent = "You have the latest version.";
 };
 $("region").onchange = () => {
   const r = regions.find(([, c]) => c === $("region").value);
@@ -917,7 +917,7 @@ $("showPass").onchange = () => { $("password").type = $("showPass").checked ? "t
 $("saved").onchange = pickNetwork;
 $("saveNet").onclick = async () => {
   const ssid = $("ssid").value.trim();
-  if (!ssid) return alert("Введите имя сети.");
+  if (!ssid) return alert("Enter a network name.");
   const res = await api("/api/network/save", form());
   if (res.error) return alert(res.error);
   await loadSettings(false);
@@ -926,7 +926,7 @@ $("saveNet").onclick = async () => {
 };
 $("delNet").onclick = async () => {
   const ssid = $("saved").value;
-  if (!ssid || !confirm(`Удалить сохранённую сеть «${ssid}» и её пароль?`)) return;
+  if (!ssid || !confirm(`Delete the saved network \"${ssid}\" and its password?`)) return;
   $("saved").value = "";
   await api("/api/network/delete", { ssid });
   await loadSettings(false);
@@ -934,20 +934,20 @@ $("delNet").onclick = async () => {
 };
 $("loadLangs").onclick = async () => {
   if (!needDevice()) return;
-  addLog("Читаю языки с устройства…");
+  addLog("Reading the languages from the device…");
   const res = await api("/api/languages", { serial: $("device").value });
   if (res.error) return;
   fill($("language"), res.map(c => [c, c]), $("language").value);
-  addLog(`Загружено языков: ${res.length}`);
+  addLog(`Languages loaded: ${res.length}`);
 };
 $("wifiOnly").onclick = () => {
   if (!needDevice()) return;
-  if (!$("ssid").value) return alert("Введите имя сети.");
+  if (!$("ssid").value) return alert("Enter a network name.");
   job("/api/wifi", form());
 };
 $("erase").onclick = () => {
   if (!needDevice()) return;
-  if (!confirm("Стереть ВСЕ данные на устройстве? Это необратимо.")) return;
+  if (!confirm("Erase ALL data on the device? This cannot be undone.")) return;
   job("/api/erase", { serial: $("device").value });
 };
 init();
