@@ -21,28 +21,29 @@ from pathlib import Path
 from . import __version__, applog, autostart, core, history, report, settings, tray, update
 
 LANGUAGES = [
-    ("Украинский", "uk"), ("Русский", "ru"), ("Английский (США)", "en"), ("Английский (Великобритания)", "en-GB"),
-    ("Польский", "pl"), ("Немецкий", "de"), ("Французский", "fr"), ("Испанский", "es"), ("Итальянский", "it"),
-    ("Португальский (Бразилия)", "pt-BR"), ("Турецкий", "tr"), ("Румынский", "ro"), ("Чешский", "cs"),
-    ("Словацкий", "sk"), ("Венгерский", "hu"), ("Казахский", "kk"), ("Иврит", "he"), ("Арабский", "ar"),
-    ("Китайский (упрощ.)", "zh-Hans"), ("Китайский (традиц.)", "zh-Hant"), ("Японский", "ja"), ("Корейский", "ko"),
+    ("English (US)", "en"), ("English (UK)", "en-GB"), ("Ukrainian", "uk"), ("Russian", "ru"),
+    ("Polish", "pl"), ("German", "de"), ("French", "fr"), ("Spanish", "es"), ("Italian", "it"),
+    ("Portuguese (Brazil)", "pt-BR"), ("Turkish", "tr"), ("Romanian", "ro"), ("Czech", "cs"),
+    ("Slovak", "sk"), ("Hungarian", "hu"), ("Kazakh", "kk"), ("Hebrew", "he"), ("Arabic", "ar"),
+    ("Chinese (Simplified)", "zh-Hans"), ("Chinese (Traditional)", "zh-Hant"), ("Japanese", "ja"), ("Korean", "ko"),
 ]
 
 REGIONS = [
-    ("Украина", "UA", "Europe/Kyiv"), ("Польша", "PL", "Europe/Warsaw"),
-    ("Германия", "DE", "Europe/Berlin"), ("Чехия", "CZ", "Europe/Prague"),
-    ("Молдова", "MD", "Europe/Chisinau"), ("Румыния", "RO", "Europe/Bucharest"),
-    ("Казахстан", "KZ", "Asia/Almaty"), ("Грузия", "GE", "Asia/Tbilisi"),
-    ("Турция", "TR", "Europe/Istanbul"), ("Великобритания", "GB", "Europe/London"),
-    ("Франция", "FR", "Europe/Paris"), ("Италия", "IT", "Europe/Rome"),
-    ("Испания", "ES", "Europe/Madrid"), ("Израиль", "IL", "Asia/Jerusalem"),
-    ("ОАЭ", "AE", "Asia/Dubai"), ("США", "US", "America/New_York"),
-    ("Канада", "CA", "America/Toronto"), ("Китай", "CN", "Asia/Shanghai"),
+    ("United States", "US", "America/New_York"), ("Canada", "CA", "America/Toronto"),
+    ("United Kingdom", "GB", "Europe/London"), ("Ukraine", "UA", "Europe/Kyiv"),
+    ("Poland", "PL", "Europe/Warsaw"), ("Germany", "DE", "Europe/Berlin"),
+    ("Czechia", "CZ", "Europe/Prague"), ("Moldova", "MD", "Europe/Chisinau"),
+    ("Romania", "RO", "Europe/Bucharest"), ("Kazakhstan", "KZ", "Asia/Almaty"),
+    ("Georgia", "GE", "Asia/Tbilisi"), ("Turkey", "TR", "Europe/Istanbul"),
+    ("France", "FR", "Europe/Paris"), ("Italy", "IT", "Europe/Rome"),
+    ("Spain", "ES", "Europe/Madrid"), ("Israel", "IL", "Asia/Jerusalem"),
+    ("UAE", "AE", "Asia/Dubai"), ("China", "CN", "Asia/Shanghai"),
 ]
 
-ACTIVATION = {"Activated": "активирован", "Unactivated": "не активирован"}
+ACTIVATION = {"Activated": "activated", "Unactivated": "not activated"}
 
-# Shown on the About page. Wallets: (coin and network, address).
+# Shown on the About page, credited to the original author of iActivator.
+# Wallets: (coin and network, address).
 INSTAGRAM = "https://www.instagram.com/perminov.george"
 WALLETS: list[tuple[str, str]] = [("USDT (TRC20)", "TQKtZpsdz7pm9cuXWPE3ZQEboPHva4Uuas")]
 
@@ -121,7 +122,7 @@ class State:
                 self.log(f"❌ {e}", serial)
                 self.fail_running_steps(str(e))
             except Exception as e:
-                self.log("❌ Ошибка: " + core.short_error(e), serial)
+                self.log("❌ Error: " + core.short_error(e), serial)
                 applog.exception(e, serial)
                 self.fail_running_steps(core.short_error(e))
             finally:
@@ -140,7 +141,7 @@ async def _with_activator(serial, fn, action, detail=""):
     try:
         await fn(act)
         history.add_event(serial, action, "ok", detail)
-        STATE.log(f"✅ {action}: готово за {time.monotonic() - started:.0f} с", serial)
+        STATE.log(f"✅ {action}: done in {time.monotonic() - started:.0f} s", serial)
     except Exception as e:
         history.add_event(serial, action, "error", str(e) if isinstance(e, core.UserFacingError) else core.short_error(e))
         raise
@@ -154,13 +155,13 @@ def _record_checks(serial: str, action: str, results: list) -> None:
     for r in results:
         level = {"bad": "error", "warn": "warn", "ok": "ok"}.get(r["status"], "info")
         STATE.log(f"{action} · {r['name']}: {r['detail']}", serial, level if level != "ok" else "debug")
-    STATE.log(f"{action}: " + (f"неисправностей {len(bad)}, замечаний {len(warn)}" if bad or warn else "без замечаний"),
+    STATE.log(f"{action}: " + (f"{len(bad)} faults, {len(warn)} warnings" if bad or warn else "no warnings"),
               serial, "error" if bad else "warn" if warn else "ok")
     if bad or warn:
         detail = "; ".join(f"{r['name']}: {r['detail']}" for r in bad + warn)
         history.add_event(serial, action, "error" if bad else "warn", detail)
     else:
-        history.add_event(serial, action, "ok", "Без замечаний")
+        history.add_event(serial, action, "ok", "No warnings")
 
 
 def _wifi(d: dict):
@@ -177,9 +178,9 @@ def _wifi(d: dict):
 
 def _options(d: dict) -> core.SetupOptions:
     return core.SetupOptions(
-        language=d.get("language", "uk").strip(),
-        region=d.get("region", "UA").strip().upper(),
-        timezone=d.get("timezone", "Europe/Kyiv").strip(),
+        language=d.get("language", "en").strip(),
+        region=d.get("region", "US").strip().upper(),
+        timezone=d.get("timezone", "America/New_York").strip(),
         use_24h=bool(d.get("h24", True)),
         activate=bool(d.get("activate", True)),
         skip_setup=bool(d.get("skip_setup", True)),
@@ -233,7 +234,7 @@ class Handler(BaseHTTPRequestHandler):
                 STATE.last_device_error = ""
                 return self._send(200, [{"serial": s, "label": STATE.labels.get(s, s)} for s in serials])
             except Exception as e:
-                msg = f"Не удалось получить список устройств: {core.short_error(e)}"
+                msg = f"Could not get the device list: {core.short_error(e)}"
                 if msg != STATE.last_device_error:  # polled every 3 s: log a failure once, not every time
                     STATE.log("⚠ " + msg)
                     applog.exception(e)
@@ -254,23 +255,23 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"password": settings.get_password(d.get("ssid", ""))})
         if self.path == "/api/network/save":
             if not d.get("ssid", "").strip():
-                return self._send(400, {"error": "Введите имя сети"})
+                return self._send(400, {"error": "Enter a network name"})
             settings.save_network(d["ssid"], d.get("password", ""), d.get("security", "Any"),
                                   bool(d.get("hidden")), bool(d.get("nomac", True)))
-            STATE.log(f"Сеть «{d['ssid'].strip()}» сохранена (защита {d.get('security', 'Any')}"
-                      + (", скрытая" if d.get("hidden") else "") + ")")
+            STATE.log(f"Network \"{d['ssid'].strip()}\" saved (security {d.get('security', 'Any')}"
+                      + (", hidden" if d.get("hidden") else "") + ")")
             return self._send(200, settings.load())
         if self.path == "/api/network/delete":
             settings.delete_network(d.get("ssid", ""))
-            STATE.log(f"Сеть «{d.get('ssid', '')}» удалена")
+            STATE.log(f"Network \"{d.get('ssid', '')}\" deleted")
             return self._send(200, settings.load())
         if self.path == "/api/settings/autostart":
             on = autostart.set_enabled(bool(d.get("on")))
-            STATE.log("Автозапуск с Windows: " + ("включён" if on else "выключен"))
+            STATE.log("Start with Windows: " + ("on" if on else "off"))
             return self._send(200, {"autostart": on})
         if self.path == "/api/settings/ui":
             settings.save_ui(d)
-            STATE.log(f"Тема оформления: {THEME_NAMES.get(d.get('theme'), d.get('theme'))}", level="debug")
+            STATE.log(f"Theme: {THEME_NAMES.get(d.get('theme'), d.get('theme'))}", level="debug")
             return self._send(200, settings.load())
         if self.path == "/api/settings/export":
             return self._send(200, _export(bool(d.get("secrets")), bool(d.get("history"))))
@@ -278,9 +279,9 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 done = settings.import_data(d.get("data"))
             except Exception as e:
-                STATE.log(f"❌ Импорт настроек: {e}")
-                return self._send(200, {"error": f"Не удалось загрузить настройки: {e}"})
-            STATE.log(f"✅ Настройки загружены из «{d.get('name', 'файла')}»")
+                STATE.log(f"❌ Settings import: {e}")
+                return self._send(200, {"error": f"Could not load the settings: {e}"})
+            STATE.log(f"✅ Settings loaded from \"{d.get('name', 'file')}\"")
             for line in done:
                 STATE.log("  " + line, level="warn" if line.startswith("⚠") else "info")
             return self._send(200, {"done": done})
@@ -322,39 +323,39 @@ class Handler(BaseHTTPRequestHandler):
 
         serial = d.get("serial")
         if not serial:
-            return self._send(400, {"error": "Не выбрано устройство"})
+            return self._send(400, {"error": "No device selected"})
 
         if self.path == "/api/locks":
             try:
                 res = STATE.run(core.get_lock_checks(serial, check_activation=not STATE.busy))
                 if d.get("record"):
-                    _record_checks(serial, "Локатор и MDM", res)
+                    _record_checks(serial, "Find My & MDM", res)
                 return self._send(200, res)
             except Exception as e:
-                return self._fail(e, serial, "Локатор и MDM")
+                return self._fail(e, serial, "Find My & MDM")
 
         if self.path == "/api/check":
-            STATE.log("Диагностика: проверяю…", serial)
+            STATE.log("Diagnostics: checking…", serial)
             try:
                 res = STATE.run(core.run_health_check(serial, check_activation=not STATE.busy))
-                _record_checks(serial, "Диагностика", res)
+                _record_checks(serial, "Diagnostics", res)
                 return self._send(200, res)
             except Exception as e:
-                return self._fail(e, serial, "Диагностика")
+                return self._fail(e, serial, "Diagnostics")
 
         if self.path == "/api/report":
             try:
                 info = STATE.run(core.get_device_details(serial))
                 history.update_device(info)
                 results = STATE.run(core.run_health_check(serial, check_activation=not STATE.busy))
-                _record_checks(serial, "Диагностика", results)
+                _record_checks(serial, "Diagnostics", results)
                 path = report.build_pdf(info, results, STATE.steps)
-                history.add_event(serial, "PDF-отчёт", "info", path.name)
-                STATE.log(f"📄 Отчёт сохранён: {path}", serial, "ok")
+                history.add_event(serial, "PDF report", "info", path.name)
+                STATE.log(f"📄 Report saved: {path}", serial, "ok")
                 report.open_file(path)
                 return self._send(200, {"path": str(path)})
             except Exception as e:
-                return self._fail(e, serial, "PDF-отчёт")
+                return self._fail(e, serial, "PDF report")
 
         if self.path in ("/api/run", "/api/wifi"):
             # Remember the form (and the network, if asked) before the job starts.
@@ -364,14 +365,14 @@ class Handler(BaseHTTPRequestHandler):
                     settings.save_network(d["ssid"], d.get("password", ""), d.get("security", "Any"),
                                           bool(d.get("hidden")), bool(d.get("nomac", True)))
             except Exception as e:
-                STATE.log(f"⚠ Не удалось сохранить сеть: {e}", serial)
+                STATE.log(f"⚠ Could not save the network: {e}", serial)
 
         if self.path == "/api/languages":
             try:
                 langs, _ = STATE.run(core.get_supported_languages(serial))
                 return self._send(200, langs)
             except Exception as e:
-                return self._fail(e, serial, "Языки устройства")
+                return self._fail(e, serial, "Device languages")
 
         if self.path == "/api/info":
             try:
@@ -380,20 +381,20 @@ class Handler(BaseHTTPRequestHandler):
                 if d.get("record"):
                     b = info.get("battery") or {}
                     detail = (f"{ACTIVATION.get(info.get('activation'), info.get('activation'))}, iOS {info.get('ios')} ({info.get('build')})"
-                              + (f", батарея {b['health']}%" if b.get("health") is not None else ""))
-                    history.add_event(serial, "Подключение", "info", detail)
-                    STATE.log(f"Подключён {info.get('model_name')}"
+                              + (f", battery {b['health']}%" if b.get("health") is not None else ""))
+                    history.add_event(serial, "Connected", "info", detail)
+                    STATE.log(f"Connected: {info.get('model_name')}"
                               + (f", {info['capacity']}" if info.get("capacity") else "") + f": {detail}", serial)
                     STATE.log(f"IMEI {info.get('imei') or '—'}" + (f", IMEI 2 {info['imei2']}" if info.get("imei2") else ""),
                               serial, "debug")
                 return self._send(200, info)
             except Exception as e:
-                return self._fail(e, serial, "Чтение данных")
+                return self._fail(e, serial, "Reading device data")
 
         if self.path == "/api/run":
             opts = _options(d)
             detail = f"{opts.language}, {opts.region}" + (f", Wi-Fi «{opts.wifi.ssid}»" if opts.wifi else "")
-            action = "Активация" if opts.activate else "Настройка"
+            action = "Activation" if opts.activate else "Setup"
             names = ([core.STEP_ACTIVATE] if opts.activate else []) + [core.STEP_LANG]
             names += [core.STEP_SKIP] if opts.skip_setup else []
             names += [core.STEP_WIFI] if opts.wifi else []
@@ -402,20 +403,20 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/api/wifi":
             wifi = _wifi(d)
             if wifi is None:
-                return self._send(400, {"error": "Введите имя сети"})
+                return self._send(400, {"error": "Enter a network name"})
             STATE.set_steps([])
             job = lambda: _with_activator(serial, lambda a: a.install_wifi_only(wifi), "Wi-Fi", f"«{wifi.ssid}»")
         elif self.path == "/api/erase":
             STATE.set_steps([])
-            job = lambda: _with_activator(serial, lambda a: a.erase(), "Стирание")
+            job = lambda: _with_activator(serial, lambda a: a.erase(), "Erase")
         else:
             return self._send(404, {"error": "not found"})
         if not STATE.run_job(job, serial):
-            return self._send(409, {"error": "Уже выполняется другая операция"})
+            return self._send(409, {"error": "Another operation is already running"})
         self._send(200, {"ok": True})
 
 
-THEME_NAMES = {"auto": "как в системе", "light": "светлая", "dark": "тёмная"}
+THEME_NAMES = {"auto": "system", "light": "light", "dark": "dark"}
 WINDOW = None  # pywebview window, for native file dialogs
 
 
@@ -433,19 +434,19 @@ def _save_path(name: str):
 
 
 def _export(secrets: bool, with_history: bool) -> dict:
-    path = _save_path(f"iActivator-настройки-{time.strftime('%Y-%m-%d')}.json")
+    path = _save_path(f"iActivator-settings-{time.strftime('%Y-%m-%d')}.json")
     if path is None:
         return {"cancelled": True}
     data = settings.export_data(secrets, with_history)
     try:
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     except OSError as e:
-        STATE.log(f"❌ Не удалось сохранить настройки: {e}")
-        return {"error": f"Не удалось сохранить файл: {e}"}
-    STATE.log(f"✅ Настройки сохранены в файл: {path}")
-    STATE.log(f"  Сети Wi-Fi: {len(data['networks'])}" + (", с паролями" if secrets else ", без паролей")
-              + (", ключ контролируемого режима" if "supervision_keybag" in data else "")
-              + (f", история: устройств {len(data['history'])}" if "history" in data else ""))
+        STATE.log(f"❌ Could not save the settings: {e}")
+        return {"error": f"Could not save the file: {e}"}
+    STATE.log(f"✅ Settings saved to a file: {path}")
+    STATE.log(f"  Wi-Fi networks: {len(data['networks'])}" + (", with passwords" if secrets else ", no passwords")
+              + (", supervision key" if "supervision_keybag" in data else "")
+              + (f", history: {len(data['history'])} devices" if "history" in data else ""))
     if WINDOW is None:
         _open_folder(str(path.parent))
     return {"path": str(path)}
@@ -482,31 +483,31 @@ def _export_logs(with_history: bool, redact: bool = False) -> dict:
     without revealing which devices were processed."""
     if redact:
         with_history = False
-    suffix = "-без-номеров" if redact else ""
-    path = _save_path(f"iActivator-журнал{suffix}-{time.strftime('%Y-%m-%d_%H%M')}.txt")
+    suffix = "-redacted" if redact else ""
+    path = _save_path(f"iActivator-log{suffix}-{time.strftime('%Y-%m-%d_%H%M')}.txt")
     if path is None:
         return {"cancelled": True}
     a = _about()
     parts = [
-        "=== iActivator — журнал для диагностики ===",
-        f"Создан: {time.strftime('%Y-%m-%d %H:%M:%S')}",
-        f"Версия: {a['version']}   Система: {a['system']}   Python: {a['python']}   pymobiledevice3: {a['pymobiledevice3']}",
+        "=== iActivator: diagnostic log ===",
+        f"Created: {time.strftime('%Y-%m-%d %H:%M:%S')}",
+        f"Version: {a['version']}   System: {a['system']}   Python: {a['python']}   pymobiledevice3: {a['pymobiledevice3']}",
     ]
     if redact:
-        parts.append("Серийные номера, IMEI и UDID скрыты (***); история устройств не включена.")
+        parts.append("Serial numbers, IMEIs and UDIDs are hidden (***); device history is not included.")
     parts.append("")
     logs = sorted(applog.logs_dir().glob("*.log"))
     if logs:
-        parts.append(f"=== ЗАПИСИ ЖУРНАЛА (файлов: {len(logs)}) ===")
+        parts.append(f"=== LOG ENTRIES ({len(logs)} files) ===")
         for p in logs:
             try:
                 parts.append(f"\n----- {p.name} -----\n" + p.read_text(encoding="utf-8").rstrip())
             except OSError as e:
-                parts.append(f"\n----- {p.name} ----- (не удалось прочитать: {e})")
+                parts.append(f"\n----- {p.name} ----- (could not read: {e})")
     else:
-        parts.append("=== ЗАПИСЕЙ ЖУРНАЛА ПОКА НЕТ ===")
+        parts.append("=== NO LOG ENTRIES YET ===")
     if with_history:
-        parts.append("\n\n=== ИСТОРИЯ УСТРОЙСТВ (JSON) ===")
+        parts.append("\n\n=== DEVICE HISTORY (JSON) ===")
         parts.append(json.dumps(history.export(), ensure_ascii=False, indent=1))
     text = "\n".join(parts) + "\n"
     if redact:
@@ -514,9 +515,9 @@ def _export_logs(with_history: bool, redact: bool = False) -> dict:
     try:
         path.write_text(text, encoding="utf-8")
     except OSError as e:
-        STATE.log(f"❌ Не удалось сохранить журнал: {e}")
-        return {"error": f"Не удалось сохранить файл: {e}"}
-    STATE.log(f"✅ Журнал сохранён в файл: {path}")
+        STATE.log(f"❌ Could not save the log: {e}")
+        return {"error": f"Could not save the file: {e}"}
+    STATE.log(f"✅ Log saved to a file: {path}")
     if WINDOW is None:
         _open_folder(str(path.parent))
     return {"path": str(path)}
@@ -579,7 +580,7 @@ def main():
         webview = None
 
     applog.cleanup()
-    STATE.log(f"iActivator {__version__} запущен · {platform.system()} {platform.release()} · Python {platform.python_version()}",
+    STATE.log(f"iActivator {__version__} started · {platform.system()} {platform.release()} · Python {platform.python_version()}",
               level="debug")
 
     if webview is not None:
@@ -607,8 +608,8 @@ def main():
         return
 
     # Fallback without pywebview: open the page in the default browser.
-    print(f"iActivator открыт в браузере: {url}")
-    print("Не закрывайте это окно, пока работаете с программой. Выход: Ctrl+C.")
+    print(f"iActivator is open in your browser: {url}")
+    print("Do not close this window while you are using the program. To quit: Ctrl+C.")
     threading.Timer(0.5, lambda: webbrowser.open(url)).start()
     try:
         server.serve_forever()

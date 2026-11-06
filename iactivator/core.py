@@ -62,12 +62,12 @@ SKIP_SETUP_PANES = [
 # "Any" lets iOS negotiate WPA2/WPA3 itself, which avoids the most common
 # "profile installed but Wi-Fi does not connect" failure (WPA3 or mixed-mode routers).
 WIFI_SECURITY = {
-    "Авто (WPA2/WPA3)": "Any",
+    "Auto (WPA2/WPA3)": "Any",
     "WPA/WPA2": "WPA",
     "WPA2": "WPA2",
     "WPA3": "WPA3",
     "WEP": "WEP",
-    "Без пароля": "None",
+    "No password": "None",
 }
 
 
@@ -105,9 +105,9 @@ class WifiOptions:
 
 @dataclass
 class SetupOptions:
-    language: str = "uk"
-    region: str = "UA"
-    timezone: str = "Europe/Kyiv"
+    language: str = "en"
+    region: str = "US"
+    timezone: str = "America/New_York"
     use_24h: bool = True
     activate: bool = True
     skip_setup: bool = True
@@ -128,11 +128,11 @@ class DeviceInfo:
     activation_state: str
 
     def label(self) -> str:
-        state = ACTIVATION_RU.get(self.activation_state, self.activation_state)
+        state = ACTIVATION_LABELS.get(self.activation_state, self.activation_state)
         return f"{model_name(self.product_type)} · iOS {self.ios} · {state} · {self.serial}"
 
 
-ACTIVATION_RU = {"Activated": "активирован", "Unactivated": "не активирован"}
+ACTIVATION_LABELS = {"Activated": "Activated", "Unactivated": "Not activated"}
 
 
 class UserFacingError(Exception):
@@ -171,7 +171,7 @@ async def list_devices() -> list[DeviceInfo]:
             ))
             await lockdown.close()
         except Exception as e:  # device busy / not trusted yet
-            result.append(DeviceInfo(dev.serial, "Устройство", "?", "?", "нет доступа — разблокируйте iPhone"))
+            result.append(DeviceInfo(dev.serial, "Device", "?", "?", "no access: unlock the iPhone"))
     return result
 
 
@@ -257,16 +257,16 @@ async def get_device_details(serial: str) -> dict:
 
 # Substring of a panic log -> what usually is at fault. Checked in order, first match wins.
 PANIC_HINTS = [
-    ("missing sensor", "Не найден датчик — чаще всего шлейф зарядки, микрофон или датчик на шлейфе кнопок"),
-    ("thermalmonitord", "Датчик температуры не отвечает — шлейф зарядки/кнопок, батарея или плата"),
-    ("smc panic", "Контроллер питания (SMC) — батарея, шлейф зарядки или плата"),
-    ("aop panic", "Сопроцессор датчиков (AOP) — датчики, шлейфы или плата"),
-    ("i2c", "Ошибка шины I2C — шлейф или компонент на плате"),
-    ("baseband", "Модем — проблема со связью / платой модема"),
-    ("nand", "Память (NAND) — неисправность накопителя"),
-    ("ans2", "Контроллер памяти (ANS) — неисправность накопителя"),
-    ("agx", "Графический процессор"),
-    ("watchdog", "Устройство зависло и перезагрузилось (watchdog) — ПО или плата"),
+    ("missing sensor", "Missing sensor: most often the charging flex, microphone, or a sensor on the button flex"),
+    ("thermalmonitord", "Temperature sensor not responding: charging/button flex, battery, or logic board"),
+    ("smc panic", "Power controller (SMC): battery, charging flex, or logic board"),
+    ("aop panic", "Sensor coprocessor (AOP): sensors, flex cables, or logic board"),
+    ("i2c", "I2C bus error: a flex cable or a component on the logic board"),
+    ("baseband", "Modem: a cellular or modem board problem"),
+    ("nand", "Storage (NAND): a failing storage chip"),
+    ("ans2", "Storage controller (ANS): a failing storage chip"),
+    ("agx", "Graphics processor (GPU)"),
+    ("watchdog", "The device froze and restarted (watchdog): software or logic board"),
 ]
 
 
@@ -296,7 +296,7 @@ async def _panic_checks(lockdown, days: int = 30) -> list[dict]:
                 recent.append((when, f))
         recent.sort(reverse=True)
         if not recent:
-            return [_check("Перезагрузки (panic)", "ok", f"Сбоев за {days} дней нет")]
+            return [_check("Restarts (panic)", "ok", f"No crashes in the last {days} days")]
 
         reasons: dict[str, int] = {}
         for _, f in recent[:10]:
@@ -312,13 +312,13 @@ async def _panic_checks(lockdown, days: int = 30) -> list[dict]:
             low = panic.lower()
             hint = next((h for key, h in PANIC_HINTS if key in low), None)
             if hint is None:
-                hint = "Прочее: " + panic.strip().splitlines()[0][:120] if panic.strip() else "Неизвестная причина"
+                hint = "Other: " + panic.strip().splitlines()[0][:120] if panic.strip() else "Unknown cause"
             reasons[hint] = reasons.get(hint, 0) + 1
 
     status = "bad" if len(recent) >= 3 else "warn"
-    detail = f"{len(recent)} сбоев за {days} дней (последний {recent[0][0]:%d.%m.%Y %H:%M}). " + "; ".join(
+    detail = f"{len(recent)} crashes in the last {days} days (latest {recent[0][0]:%m/%d/%Y %H:%M}). " + "; ".join(
         f"{h} ×{n}" for h, n in sorted(reasons.items(), key=lambda x: -x[1]))
-    return [_check("Перезагрузки (panic)", status, detail)]
+    return [_check("Restarts (panic)", status, detail)]
 
 
 async def _activation_lock_status(lockdown) -> Optional[bool]:
@@ -355,63 +355,63 @@ async def lock_checks(lockdown, own_cert: Optional[bytes] = None, check_activati
     v = lockdown.all_values
 
     if v.get("ActivationState") == "Unactivated" and not check_activation:
-        results.append(_check("Локатор (блокировка активации)", "info", "Проверка отложена — идёт активация"))
+        results.append(_check("Find My (Activation Lock)", "info", "Check deferred: activation is in progress"))
     elif v.get("ActivationState") == "Unactivated":
         try:
             locked = await _activation_lock_status(lockdown)
             if locked:
-                results.append(_check("Локатор (блокировка активации)", "bad",
-                                      "Устройство привязано к Apple ID. Нужен пароль владельца или отвязка на icloud.com/find"))
+                results.append(_check("Find My (Activation Lock)", "bad",
+                                      "This device is linked to an Apple ID. It needs the owner's password, or removal at icloud.com/find"))
             elif locked is False:
-                results.append(_check("Локатор (блокировка активации)", "ok", "Блокировки нет"))
+                results.append(_check("Find My (Activation Lock)", "ok", "No lock"))
             else:
-                results.append(_check("Локатор (блокировка активации)", "warn", "Сервер Apple не дал однозначного ответа"))
+                results.append(_check("Find My (Activation Lock)", "warn", "Apple's server gave no clear answer"))
         except Exception as e:
-            results.append(_check("Локатор (блокировка активации)", "warn",
-                                  f"Не удалось проверить (нужен интернет): {short_error(e)}"))
+            results.append(_check("Find My (Activation Lock)", "warn",
+                                  f"Could not check (internet required): {short_error(e)}"))
     else:
-        results.append(_check("Локатор (блокировка активации)", "info",
-                              "Устройство уже активировано — по USB статус не узнать. "
-                              "Проверьте на iPhone: Настройки → [имя] → Локатор. "
-                              "Перед продажей/сбросом его нужно выключить"))
+        results.append(_check("Find My (Activation Lock)", "info",
+                              "The device is already activated, so the status cannot be read over USB. "
+                              "Check on the iPhone: Settings → [your name] → Find My. "
+                              "Turn it off before selling or erasing the device"))
 
     try:
         async with MobileConfigService(lockdown) as mc:
             cc = await mc.get_cloud_configuration() or {}
             profiles = await mc.get_profile_list()
     except Exception as e:
-        results.append(_check("MDM (удалённое управление)", "warn", f"Не удалось прочитать: {short_error(e)}"))
+        results.append(_check("MDM (remote management)", "warn", f"Could not read: {short_error(e)}"))
         return results
 
     ours = own_cert is not None and own_cert in cc.get("SupervisorHostCertificates", [])
     org = cc.get("OrganizationName")
     if ours:
-        results.append(_check("MDM (удалённое управление)", "ok", "Под контролем этого компьютера (iActivator)"))
+        results.append(_check("MDM (remote management)", "ok", "Supervised by this computer (iActivator)"))
     elif cc.get("IsMDMUnremovable") or cc.get("ConfigurationURL"):
-        results.append(_check("MDM (удалённое управление)", "bad",
-                              f"Устройство в корпоративной программе (Apple Business Manager): {org or 'организация неизвестна'}. "
-                              "Удалить может только владелец организации"))
+        results.append(_check("MDM (remote management)", "bad",
+                              f"Enrolled in an organization program (Apple Business Manager): {org or 'unknown organization'}. "
+                              "Only the organization's owner can remove it"))
     elif not cc.get("IsSupervised") and cc.get("ConfigurationSource") == 2 and cc.get("SkipSetup"):
-        results.append(_check("MDM (удалённое управление)", "ok", "Не управляется (только пропуск экранов настройки)"))
+        results.append(_check("MDM (remote management)", "ok", "Not managed (setup screens skipped only)"))
     elif cc.get("IsSupervised") or org:
-        results.append(_check("MDM (удалённое управление)", "warn",
-                              f"Контролируемый режим: {org or 'неизвестная организация'} (снимается стиранием)"))
+        results.append(_check("MDM (remote management)", "warn",
+                              f"Supervised by: {org or 'unknown organization'} (removed by erasing)"))
     else:
-        results.append(_check("MDM (удалённое управление)", "ok", "Не управляется"))
+        results.append(_check("MDM (remote management)", "ok", "Not managed"))
 
     meta = profiles.get("ProfileMetadata", {})
     foreign = {pid: m for pid, m in meta.items() if not pid.startswith("com.iactivator.")}
     locked_profiles = [m.get("PayloadDisplayName", pid) for pid, m in foreign.items() if m.get("PayloadRemovalDisallowed")]
     if locked_profiles:
-        results.append(_check("Профили", "bad", "Неудаляемые профили: " + ", ".join(locked_profiles)))
+        results.append(_check("Profiles", "bad", "Profiles that cannot be removed: " + ", ".join(locked_profiles)))
     elif foreign:
-        results.append(_check("Профили", "warn", "Установлены профили: " +
+        results.append(_check("Profiles", "warn", "Installed profiles: " +
                               ", ".join(m.get("PayloadDisplayName", pid) for pid, m in foreign.items())))
 
     try:
         r = await lockdown.get_value("com.apple.mobile.restriction") or {}
         if r.get("ProhibitAppInstall") or r.get("ProhibitAppDelete"):
-            results.append(_check("Ограничения", "warn", "Запрещена установка/удаление приложений"))
+            results.append(_check("Restrictions", "warn", "Installing or deleting apps is prohibited"))
     except Exception:
         pass
     return results
@@ -443,39 +443,39 @@ async def run_health_check(serial: str, check_activation: bool = True) -> list[d
                 raw = await diag.get_battery()
             battery = _battery_info(raw or {}) | {"external": bool((raw or {}).get("ExternalConnected"))}
         except Exception as e:
-            results.append(_check("Батарея", "warn", f"Нет доступа к диагностике (разблокируйте iPhone): {short_error(e)}"))
+            results.append(_check("Battery", "warn", f"No access to diagnostics (unlock the iPhone): {short_error(e)}"))
         if battery:
             h, cyc = battery.get("health"), battery.get("cycles")
             if h is None:
-                results.append(_check("Ёмкость батареи", "warn", "Устройство не сообщило ёмкость"))
+                results.append(_check("Battery health", "warn", "The device did not report its capacity"))
             else:
                 st = "ok" if h >= 85 else "warn" if h >= 80 else "bad"
-                note = {"ok": "в норме", "warn": "износ заметен", "bad": "рекомендуется замена"}[st]
-                results.append(_check("Ёмкость батареи", st, f"{h}% ({battery['full_mah']} из {battery['design_mah']} мАч) — {note}"))
+                note = {"ok": "healthy", "warn": "noticeably worn", "bad": "replacement recommended"}[st]
+                results.append(_check("Battery health", st, f"{h}% ({battery['full_mah']} of {battery['design_mah']} mAh): {note}"))
             if cyc is not None:
                 st = "ok" if cyc < 500 else "warn" if cyc < 1000 else "bad"
-                results.append(_check("Циклы зарядки", st, str(cyc)))
+                results.append(_check("Charge cycles", st, str(cyc)))
             t = battery.get("temperature")
             if t is not None:
                 st = "ok" if t < 40 else "warn" if t < 45 else "bad"
-                results.append(_check("Температура батареи", st, f"{t} °C"))
+                results.append(_check("Battery temperature", st, f"{t} °C"))
             level = battery.get("level")
             if battery["external"] and not battery["charging"] and level is not None and level < 80:
-                results.append(_check("Зарядка", "warn",
-                                      f"Кабель подключён, но заряд ({level}%) не идёт — проверьте кабель, порт или контроллер зарядки"))
+                results.append(_check("Charging", "warn",
+                                      f"The cable is connected but the battery ({level}%) is not charging: check the cable, port, or charging controller"))
 
         # Radios: an empty address / missing modem firmware usually means a chip that did not start
-        for key, name in (("WiFiAddress", "Wi-Fi модуль"), ("BluetoothAddress", "Bluetooth")):
+        for key, name in (("WiFiAddress", "Wi-Fi module"), ("BluetoothAddress", "Bluetooth")):
             addr = v.get(key)
             ok = bool(addr) and addr.replace(":", "").strip("0") != ""
-            results.append(_check(name, "ok" if ok else "bad", addr if ok else "Адрес отсутствует — модуль не определяется"))
+            results.append(_check(name, "ok" if ok else "bad", addr if ok else "No address: the module is not detected"))
         if v.get("TelephonyCapability"):
             if not v.get("BasebandVersion"):
-                results.append(_check("Модем", "bad", "Нет версии прошивки модема — модем не запустился"))
+                results.append(_check("Modem", "bad", "No modem firmware version: the modem did not start"))
             elif not v.get("InternationalMobileEquipmentIdentity"):
-                results.append(_check("Модем", "bad", "IMEI не читается"))
+                results.append(_check("Modem", "bad", "The IMEI cannot be read"))
             else:
-                results.append(_check("Модем", "ok", f"прошивка {v.get('BasebandVersion')}"))
+                results.append(_check("Modem", "ok", f"firmware {v.get('BasebandVersion')}"))
 
         # Storage
         try:
@@ -484,7 +484,7 @@ async def run_health_check(serial: str, check_activation: bool = True) -> list[d
             if total and free is not None:
                 pct = free * 100 / total
                 st = "ok" if pct >= 10 else "warn" if pct >= 3 else "bad"
-                results.append(_check("Память", st, f"свободно {free / 1e9:.1f} из {total / 1e9:.0f} ГБ ({pct:.0f}%)"))
+                results.append(_check("Storage", st, f"{free / 1e9:.1f} of {total / 1e9:.0f} GB free ({pct:.0f}%)"))
         except Exception:
             pass
 
@@ -492,7 +492,7 @@ async def run_health_check(serial: str, check_activation: bool = True) -> list[d
         try:
             results.extend(await _panic_checks(lockdown))
         except Exception as e:
-            results.append(_check("Перезагрузки (panic)", "warn", f"Не удалось прочитать журналы: {short_error(e)}"))
+            results.append(_check("Restarts (panic)", "warn", f"Could not read the logs: {short_error(e)}"))
 
         results = await lock_checks(lockdown, _own_cert(), check_activation) + results
         return results
@@ -539,11 +539,11 @@ def build_wifi_profile(wifi: WifiOptions) -> tuple[bytes, str]:
 
 def _validate_wifi(wifi: WifiOptions) -> None:
     if not wifi.ssid.strip():
-        raise UserFacingError("Не указано имя Wi-Fi сети (SSID).")
+        raise UserFacingError("No Wi-Fi network name (SSID) given.")
     if wifi.ssid != wifi.ssid.strip():
-        raise UserFacingError("В имени сети есть пробелы в начале/конце — уберите их, иначе iPhone не найдёт сеть.")
+        raise UserFacingError("The network name has spaces at the start or end. Remove them, or the iPhone will not find the network.")
     if wifi.security in ("Any", "WPA", "WPA2", "WPA3") and not (8 <= len(wifi.password) <= 63):
-        raise UserFacingError("Пароль WPA/WPA2/WPA3 должен быть от 8 до 63 символов.")
+        raise UserFacingError("A WPA/WPA2/WPA3 password must be 8 to 63 characters long.")
 
 
 def _cert_der(keybag: Path) -> bytes:
@@ -551,9 +551,9 @@ def _cert_der(keybag: Path) -> bytes:
 
 
 # Named stages shown as a live checklist in the UI during a run.
-STEP_ACTIVATE = "Активация"
-STEP_LANG = "Язык и регион"
-STEP_SKIP = "Пропуск настроек"
+STEP_ACTIVATE = "Activation"
+STEP_LANG = "Language & region"
+STEP_SKIP = "Skip setup screens"
 STEP_WIFI = "Wi-Fi"
 
 
@@ -568,7 +568,7 @@ class Activator:
     async def connect(self) -> LockdownClient:
         if self.lockdown is not None:
             await self.lockdown.close()
-        self.log("Подключение к устройству… (если появится «Доверять этому компьютеру?» — нажмите «Доверять»)")
+        self.log("Connecting to the device… (if \"Trust This Computer?\" appears, tap \"Trust\")")
         self.lockdown = await create_using_usbmux(serial=self.serial, autopair=True, pair_timeout=120)
         return self.lockdown
 
@@ -582,8 +582,8 @@ class Activator:
             _validate_wifi(opts.wifi)
         lockdown = await self.connect()
         v = lockdown.all_values
-        self.log(f"Устройство: {v.get('ProductType')} iOS {v.get('ProductVersion')}, "
-                 f"состояние: {v.get('ActivationState')}")
+        self.log(f"Device: {v.get('ProductType')} iOS {v.get('ProductVersion')}, "
+                 f"state: {v.get('ActivationState')}")
 
         # Order matters. Once the iPhone gets online during setup, Setup Assistant fetches
         # its own (empty) configuration from Apple and overwrites ours — the screens then
@@ -604,22 +604,22 @@ class Activator:
             await self.apply_cloud_configuration(opts, keybag)
             self.step(STEP_SKIP, "ok")
         elif await self.setup_finished() is False:
-            self.log("ℹ «Пропустить все экраны настройки» выключено — экраны на iPhone нужно пройти вручную.")
+            self.log("ℹ \"Skip all setup screens\" is off, so the screens on the iPhone have to be completed by hand.")
 
         if opts.wifi:
             self.step(STEP_WIFI, "run")
             if opts.skip_setup and await self.setup_finished() is False:
-                self.log("📱 Проведите вверх по экрану iPhone — он перейдёт на главный экран без настроек. "
-                         "Wi-Fi установлю сразу после этого.")
+                self.log("📱 Swipe up on the iPhone screen: it will go to the Home Screen without any setup. "
+                         "Wi-Fi will be installed right after that.")
                 if not await self.wait_setup_finished(timeout=600):
-                    self.log("⚠ iPhone не завершил настройку за 10 минут. Wi-Fi не установлен — "
-                             "нажмите «Только Wi-Fi», когда iPhone будет на главном экране.")
-                    self.step(STEP_WIFI, "warn", "не установлен — нажмите «Только Wi-Fi» на главном экране")
+                    self.log("⚠ The iPhone did not finish setup within 10 minutes. Wi-Fi was not installed: "
+                             "tap \"Wi-Fi only\" once the iPhone is on the Home Screen.")
+                    self.step(STEP_WIFI, "warn", "not installed: tap \"Wi-Fi only\" on the Home Screen")
                     return
             await self.install_wifi(opts.wifi, keybag)
             self.step(STEP_WIFI, "ok")
 
-        self.log("✅ Готово. Если iPhone ещё на экране «Привет» — проведите вверх.")
+        self.log("✅ Done. If the iPhone is still on the \"Hello\" screen, swipe up.")
 
     async def setup_finished(self) -> Optional[bool]:
         try:
@@ -639,7 +639,7 @@ class Activator:
                 except Exception:
                     continue
             elif done:
-                self.log("iPhone завершил настройку.")
+                self.log("The iPhone finished setup.")
                 await asyncio.sleep(3)  # let Setup Assistant close before installing profiles
                 return True
         return False
@@ -650,48 +650,48 @@ class Activator:
         service = MobileActivationService(self.lockdown)
         state = await service.state()
         if state != "Unactivated":
-            self.log(f"Активация не требуется (состояние: {state}).")
+            self.log(f"Activation is not needed (state: {state}).")
             return
-        self.log("Активация через серверы Apple (интернет компьютера)…")
+        self.log("Activating through Apple's servers (using the computer's internet)…")
         try:
             await service.activate(skip_apple_id_query=True)
         except MobileActivationException as e:
             if "iCloud" in str(e) or "Activation Lock" in str(e):
                 raise UserFacingError(
-                    "На устройстве включена Блокировка активации (Найти iPhone). "
-                    "Введите Apple ID владельца на самом iPhone или снимите устройство с аккаунта "
-                    "на icloud.com/find. Программа не обходит эту блокировку."
+                    "Activation Lock (Find My iPhone) is on for this device. "
+                    "Enter the owner's Apple ID on the iPhone itself, or remove the device from the account "
+                    "at icloud.com/find. This program does not bypass that lock."
                 ) from e
             raise
-        self.log("Устройство активировано.")
+        self.log("Device activated.")
         await self.connect()
 
     async def set_language_region(self, opts: SetupOptions) -> None:
         locale = f"{opts.language.split('-')[0]}_{opts.region}"
-        self.log(f"Язык: {opts.language}, регион/локаль: {locale}, часовой пояс: {opts.timezone}")
+        self.log(f"Language: {opts.language}, region/locale: {locale}, time zone: {opts.timezone}")
         await self.lockdown.set_language(opts.language)
         await self.lockdown.set_locale(locale)
         for setter, value, what in (
-            (self.lockdown.set_timezone, opts.timezone, "часовой пояс"),
-            (self.lockdown.set_uses24h_clock, opts.use_24h, "24-часовой формат"),
+            (self.lockdown.set_timezone, opts.timezone, "time zone"),
+            (self.lockdown.set_uses24h_clock, opts.use_24h, "24-hour format"),
         ):
             try:
                 await setter(value)
             except Exception as e:  # not writable on some iOS versions; not critical
-                self.log(f"  ⚠ не удалось установить {what}: {e}")
+                self.log(f"  ⚠ could not set the {what}: {e}")
 
     async def apply_cloud_configuration(self, opts: SetupOptions, keybag: Optional[Path]) -> None:
         cert = _cert_der(keybag) if keybag is not None else None
         async with MobileConfigService(self.lockdown) as mc:
             current = await mc.get_cloud_configuration() or {}
             if cert is not None and current.get("IsSupervised") and cert in current.get("SupervisorHostCertificates", []):
-                self.log("Конфигурация уже применена этим компьютером — пропускаю.")
+                self.log("The configuration was already applied by this computer: skipping.")
                 return
             if cert is None and current.get("ConfigurationSource") == 2 and current.get("SkipSetup"):
-                self.log("Пропуск экранов уже настроен — пропускаю.")
+                self.log("Setup skipping is already configured: skipping.")
                 return
-            self.log("Применяю конфигурацию: пропуск экранов настройки" +
-                     (" + контролируемый режим…" if cert is not None else "…"))
+            self.log("Applying configuration: skip setup screens" +
+                     (" + supervised mode…" if cert is not None else "…"))
             config = {
                 "AllowPairing": True,
                 "CloudConfigurationUIComplete": True,
@@ -712,18 +712,18 @@ class Activator:
                 await mc.set_cloud_configuration(config)
             except CloudConfigurationAlreadyPresentError as e:
                 raise UserFacingError(
-                    "iPhone уже получил свою конфигурацию настройки (он выходил в интернет во время "
-                    "настройки, или его настраивали 3uTools / Apple Configurator), и iOS не даёт её заменить. "
-                    "Нажмите «Стереть…», затем «Запустить» — после стирания экраны будут пропущены."
+                    "The iPhone has already received its own setup configuration (it went online during "
+                    "setup, or it was set up with 3uTools / Apple Configurator), and iOS will not let it be replaced. "
+                    "Tap \"Erase…\", then \"Run\": after erasing, the screens will be skipped."
                 ) from e
-        self.log("Экраны настройки будут пропущены.")
+        self.log("The setup screens will be skipped.")
         await self.connect()
 
     async def install_wifi(self, wifi: WifiOptions, keybag: Optional[Path]) -> None:
         profile, profile_id = build_wifi_profile(wifi)
-        self.log(f"Wi-Fi: «{wifi.ssid}», защита {wifi.security}, "
-                 f"{'скрытая, ' if wifi.hidden else ''}"
-                 f"{'без случайного MAC' if wifi.disable_mac_randomization else 'частный MAC'}")
+        self.log(f"Wi-Fi: \"{wifi.ssid}\", security {wifi.security}, "
+                 f"{'hidden, ' if wifi.hidden else ''}"
+                 f"{'no randomized MAC' if wifi.disable_mac_randomization else 'private MAC'}")
         last_error: Optional[Exception] = None
         for attempt in (1, 2, 3):
             try:
@@ -732,9 +732,9 @@ class Activator:
                         # Without supervision iOS only accepts the profile as "downloaded";
                         # the user has to confirm it once in Settings.
                         await mc.install_profile(profile)
-                        self.log("  📱 На iPhone: Настройки → «Профиль загружен» (вверху) → Установить. "
-                                 "Чтобы Wi-Fi ставился без нажатий, включите «Контролируемый режим» "
-                                 "(на сброшенном iPhone).")
+                        self.log("  📱 On the iPhone: Settings → \"Profile Downloaded\" (at the top) → Install. "
+                                 "For Wi-Fi to install with no taps, turn on \"Supervised mode\" "
+                                 "(on an erased iPhone).")
                         return
                     await mc.install_profile_silent(keybag, profile)
                     # The radio is often left off after a skipped setup: the profile is
@@ -746,15 +746,15 @@ class Activator:
                         pass
                     installed = (await mc.get_profile_list()).get("ProfileMetadata", {})
                 if profile_id in installed:
-                    self.log("  Профиль Wi-Fi установлен и подтверждён устройством.")
+                    self.log("  The Wi-Fi profile is installed and confirmed by the device.")
                     return
-                last_error = UserFacingError("устройство не показало профиль после установки")
+                last_error = UserFacingError("the device did not show the profile after installation")
             except (ProfileError, ConnectionError, OSError) as e:
                 last_error = e
-            self.log(f"  попытка {attempt} не удалась: {short_error(last_error)}; повтор…")
+            self.log(f"  attempt {attempt} failed: {short_error(last_error)}; retrying…")
             await asyncio.sleep(2)
             await self.connect()
-        raise UserFacingError(f"Не удалось установить профиль Wi-Fi: {short_error(last_error)}")
+        raise UserFacingError(f"Could not install the Wi-Fi profile: {short_error(last_error)}")
 
     async def install_wifi_only(self, wifi: WifiOptions) -> None:
         """Wi-Fi for an already set-up device: silent if this computer supervises it,
@@ -768,12 +768,12 @@ class Activator:
                 current = await mc.get_cloud_configuration() or {}
             ours = _cert_der(keybag) in current.get("SupervisorHostCertificates", [])
         if not ours:
-            self.log("Устройство не контролируется этим компьютером — профиль потребует подтверждения на iPhone.")
+            self.log("The device is not supervised by this computer, so the profile will need confirmation on the iPhone.")
         await self.install_wifi(wifi, keybag if ours else None)
 
     async def erase(self) -> None:
         lockdown = await self.connect()
-        self.log("Стираю устройство (все данные будут удалены)…")
+        self.log("Erasing the device (all data will be deleted)…")
         async with MobileConfigService(lockdown) as mc:
             await mc.erase_device(preserve_data_plan=True, disallow_proximity_setup=False)
         try:
@@ -781,4 +781,4 @@ class Activator:
         except Exception:
             pass  # the device drops the connection while erasing
         self.lockdown = None
-        self.log("Команда стирания отправлена. Дождитесь перезагрузки iPhone.")
+        self.log("The erase command was sent. Wait for the iPhone to restart.")
